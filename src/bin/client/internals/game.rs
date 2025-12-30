@@ -2,7 +2,7 @@ use crate::vec3;
 use crate::internals::math::{Vector3};
 use crate::internals::renderer::{Renderer};
 
-use glfw::{Glfw, Context, Action, Key, fail_on_errors};
+use glfw::{Context, Action, Key, fail_on_errors};
 
 use crate::{GAME_NAME, WINDOW_SIZE_X, WINDOW_SIZE_Y};
 
@@ -13,7 +13,7 @@ struct Player {
 impl Player {
     fn new() -> Self {
         Self{
-            position: vec3!(0, 0, 0)
+            position: vec3!(0.0, 0.0, 0.0)
         }
     }
 }
@@ -25,7 +25,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         let player = Player::new();
-        let renderer = Renderer::init();
+        let renderer = Renderer::new();
 
         return Self{
             player,
@@ -44,21 +44,28 @@ impl Game {
         window.make_current();
         window.set_key_polling(true);
 
-        while !window.should_close() {
-            window.swap_buffers();
+        self.renderer.init(&mut window);
 
+        while !window.should_close() {
+            
             glfw.poll_events();
             for (_, event) in glfw::flush_messages(&events) {
-                dbg!(&event);
-                match event {
-                    glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                        window.set_should_close(true)
-                    },
-                    _ => {},
-                }
+                Self::process_event(event, &mut window)
             }
+            self.renderer.render();
+            window.swap_buffers();
         }
         
         return Ok(())
+    }
+
+    fn process_event(event: glfw::WindowEvent, window: &mut glfw::Window) {
+        dbg!(&event);
+        match event {
+            glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                window.set_should_close(true)
+            },
+            _ => {},
+        }
     }
 }
