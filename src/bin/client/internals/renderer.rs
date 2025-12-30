@@ -1,11 +1,6 @@
-use glfw::{Glfw, Context}
-
-pub struct Renderer {
-    glfw: mut Glfw
-}
+pub struct Renderer;
 impl Renderer {
-    fn init() -> Self {
-        use glfw::fail_on_errors;
-        let mut glfw = glfw::init(fail_on_errors!()).unwrap()
+    pub fn init() -> Self {
+        return Self;
     }
 }
