@@ -6,6 +6,25 @@ use glfw::{Context, Action, Key, fail_on_errors};
 
 use crate::{GAME_NAME, WINDOW_SIZE_X, WINDOW_SIZE_Y};
 
+const TEST_TRIANGLE: Triangle  = Triangle::new(
+    vec3!(-0.5, -0.5, 0.0),
+    vec3!(0.5, -0.5, 0.0),
+    vec3!(0.0, 0.5, 0.0)
+);
+
+pub struct Triangle(Vector3, Vector3, Vector3);
+impl Triangle {
+    pub const fn new(x: Vector3, y: Vector3, z: Vector3) -> Self {
+        Self(x,y,z)
+    }
+    pub const fn as_array(&self) -> [[f32;3];3] {
+        [
+            self.0.as_array(),
+            self.1.as_array(),
+            self.2.as_array(),
+        ]
+    }
+}
 
 struct Player {
     position: Vector3,
@@ -52,7 +71,7 @@ impl Game {
             for (_, event) in glfw::flush_messages(&events) {
                 Self::process_event(event, &mut window)
             }
-            self.renderer.render();
+            self.renderer.render(TEST_TRIANGLE);
             window.swap_buffers();
         }
         
