@@ -1,5 +1,5 @@
 use crate::vec3;
-use crate::internals::math::{Vector3};
+use crate::internals::math::{Vector3, Triangle};
 use crate::internals::renderer::{Renderer};
 
 use glfw::{Context, Action, Key, fail_on_errors};
@@ -12,19 +12,17 @@ const TEST_TRIANGLE: Triangle  = Triangle::new(
     vec3!(0.0, 0.5, 0.0)
 );
 
-pub struct Triangle(Vector3, Vector3, Vector3);
-impl Triangle {
-    pub const fn new(x: Vector3, y: Vector3, z: Vector3) -> Self {
-        Self(x,y,z)
-    }
-    pub const fn as_array(&self) -> [[f32;3];3] {
-        [
-            self.0.as_array(),
-            self.1.as_array(),
-            self.2.as_array(),
-        ]
-    }
-}
+const TEST_TRIANGLE1: Triangle  = Triangle::new(
+    vec3!(0.5, 0.5, 0.0),
+    vec3!(0.5, -0.5, 0.0),
+    vec3!(-0.5, 0.5, 0.0)
+);
+const TEST_TRIANGLE2: Triangle  = Triangle::new(
+    vec3!(0.5, -0.5, 0.0),
+    vec3!(-0.5, -0.5, 0.0),
+    vec3!(-0.5, 0.5, 0.0)
+);
+
 
 struct Player {
     position: Vector3,
@@ -51,7 +49,7 @@ impl Game {
             renderer,
         }
     }
-    pub fn start(&self, ) -> Result<(), ()> {
+    pub fn start(&mut self, ) -> Result<(), ()> {
         //init Window
         let mut glfw = glfw::init(fail_on_errors!()).unwrap();
         let (mut window, events) = glfw.create_window(
@@ -59,31 +57,33 @@ impl Game {
             GAME_NAME,
             glfw::WindowMode::Windowed,
         ).expect("Failed to create GLFW Window.");
-
+        
+        self.renderer.init(&mut window);
+        
         window.make_current();
         window.set_key_polling(true);
-
-        self.renderer.init(&mut window);
+        window.set_size_polling(true);
 
         while !window.should_close() {
             
             glfw.poll_events();
             for (_, event) in glfw::flush_messages(&events) {
-                Self::process_event(event, &mut window)
+                self.process_event(event, &mut window)
             }
-            self.renderer.render(TEST_TRIANGLE);
+            self.renderer.render(vec![TEST_TRIANGLE1, TEST_TRIANGLE2]);
             window.swap_buffers();
         }
         
         return Ok(())
     }
 
-    fn process_event(event: glfw::WindowEvent, window: &mut glfw::Window) {
+    fn process_event(&self, event: glfw::WindowEvent, window: &mut glfw::Window) {
         dbg!(&event);
         match event {
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                 window.set_should_close(true)
             },
+            glfw::WindowEvent::Size(x, y) => self.renderer.resize(x, y),
             _ => {},
         }
     }
