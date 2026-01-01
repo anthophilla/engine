@@ -7,5 +7,5 @@ enum Error{
     VAOGenError(&'static str),
     VBOGenError(&'static str),
     EBOGenError(&'static str),
-    ShaderError(&'static str),
+    ShaderError(String),
 }

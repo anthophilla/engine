@@ -2,7 +2,7 @@ use crate::vec3;
 use crate::internals::math::{Vector3, Triangle};
 use crate::internals::renderer::{Renderer};
 
-use glfw::{Context, Action, Key, fail_on_errors};
+use glfw::{Action, Context, GlfwReceiver, Key, WindowEvent, fail_on_errors};
 
 use crate::{GAME_NAME, WINDOW_SIZE_X, WINDOW_SIZE_Y};
 
@@ -38,19 +38,15 @@ impl Player {
 pub struct Game {
     player: Player,
     renderer: Renderer,
+    glfw: glfw::Glfw,
+    window: glfw::PWindow,
+    events: GlfwReceiver<(f64, WindowEvent)>
 }
 impl Game {
     pub fn new() -> Self {
         let player = Player::new();
-        let renderer = Renderer::new();
-
-        return Self{
-            player,
-            renderer,
-        }
-    }
-    pub fn start(&mut self, ) -> Result<(), ()> {
-        //init Window
+        
+        //create a window
         let mut glfw = glfw::init(fail_on_errors!()).unwrap();
         let (mut window, events) = glfw.create_window(
             WINDOW_SIZE_X, WINDOW_SIZE_Y,
@@ -58,33 +54,42 @@ impl Game {
             glfw::WindowMode::Windowed,
         ).expect("Failed to create GLFW Window.");
         
-        self.renderer.init(&mut window);
-        
-        window.make_current();
-        window.set_key_polling(true);
-        window.set_size_polling(true);
+        let renderer = Renderer::init( &mut window);
 
-        while !window.should_close() {
+        return Self{
+            player,
+            renderer,
+            glfw,
+            window,
+            events
+        }
+    }
+    pub fn start(&mut self, ) -> Result<(), ()> {
+        
+        self.window.make_current();
+        self.window.set_key_polling(true);
+        self.window.set_size_polling(true);
+
+        while !self.window.should_close() {
             
-            glfw.poll_events();
-            for (_, event) in glfw::flush_messages(&events) {
-                self.process_event(event, &mut window)
-            }
+            self.process_events();
             self.renderer.render(vec![TEST_TRIANGLE1, TEST_TRIANGLE2]);
-            window.swap_buffers();
+            self.window.swap_buffers();
         }
         
         return Ok(())
     }
 
-    fn process_event(&self, event: glfw::WindowEvent, window: &mut glfw::Window) {
-        dbg!(&event);
-        match event {
-            glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                window.set_should_close(true)
-            },
-            glfw::WindowEvent::Size(x, y) => self.renderer.resize(x, y),
-            _ => {},
+    fn process_events(&mut self,) {
+        self.glfw.poll_events();
+        for (_, event) in glfw::flush_messages(&self.events) {
+            match event {
+                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                    self.window.set_should_close(true)
+                },
+                glfw::WindowEvent::Size(x, y) => self.renderer.resize(x, y),
+                _ => {},
+            }
         }
     }
 }

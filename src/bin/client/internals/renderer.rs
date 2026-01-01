@@ -98,39 +98,105 @@ impl ElementBufferObject {
     }
 }
 
+struct Shader(u32);
+impl Shader {
+    fn create(source: &'static str, shader_type: u32) -> Result<Self, Error> {
+        unsafe {
+            let shader = gl::CreateShader(shader_type);
+            if shader == 0 {return Err(Error::ShaderError("couldn't create shader".to_string()))}
+            gl::ShaderSource(
+                shader,
+                1,
+                &(source.as_bytes().as_ptr().cast()),
+                &(source.len().try_into().unwrap()),
+            );
+
+            gl::CompileShader(shader);
+
+            let mut success = 0;
+            gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
+            if success == 0 {
+                let mut info_buffer: Vec<u8> = Vec::with_capacity(1024);
+                let mut log_len = 0_i32;
+                gl::GetShaderInfoLog(shader, 1024, &mut log_len, info_buffer.as_mut_ptr().cast());
+                //info_buffer.set_len(log_len.try_into().unwrap());
+                let msg = format!("Shader compile error: {}", String::from_utf8_lossy(&info_buffer));
+                return Err(Error::ShaderError(msg))
+            }
+            return Ok(Self(shader));
+        }
+    }
+}
+struct ShaderProgram {
+    program: u32,
+    vertex_shader: Shader,
+    frag_shader:   Shader,
+}
+impl ShaderProgram {
+    fn create(vertex_shader: Shader, frag_shader: Shader) -> Result<Self, Error> {
+        unsafe{
+            let program = gl::CreateProgram();
+            
+            gl::AttachShader(program, vertex_shader.0.clone());
+            gl::AttachShader(program, frag_shader.0.clone());
+
+            gl::LinkProgram(program);
+            
+            let mut success: i32 = 0;
+            gl::GetProgramiv(program, gl::LINK_STATUS, &mut success);
+            if success == 0 { 
+                let mut info_buffer: Vec<u8> = Vec::with_capacity(1024);
+                let mut log_len = 0_i32;
+                gl::GetShaderInfoLog(program, 1024, &mut log_len, info_buffer.as_mut_ptr().cast());
+                //info_buffer.set_len(log_len.try_into().unwrap());
+                let msg = format!("Shader program link error: {}", String::from_utf8_lossy(&info_buffer));
+                return Err(Error::ShaderError(msg))
+            }
+
+            gl::DeleteShader(vertex_shader.0.clone());
+            gl::DeleteShader(frag_shader.0.clone());
+            return Ok(ShaderProgram { program, vertex_shader, frag_shader })
+        }
+    }
+    fn use_program(&self) {
+        unsafe { gl::UseProgram(self.program); }
+    }
+}
+
 pub struct Renderer {
     vbo: [VertexBufferObject; 2],
     vao: [VertexArrayObject; 2],
     ebo: [ElementBufferObject; 2],
-    shader_program: [u32; 2],
+    shader_program: [ShaderProgram; 2],
 }
 impl Renderer {
-    pub fn new() -> Self {
-        return Self{
-            vbo: [VertexBufferObject(0), VertexBufferObject(0)], // ugly af
-            vao: [VertexArrayObject(0), VertexArrayObject(0)],
-            ebo: [ElementBufferObject(0), ElementBufferObject(0)],
-            shader_program: [0, 0],
-        };
-    }
-    pub fn init(&mut self, window: &mut glfw::Window) {
+    pub fn init(window: &mut glfw::Window) -> Self {
         gl::load_with(|s| window.get_proc_address(s).unwrap() as *const _);
 
-        self.vbo = [VertexBufferObject::new().unwrap(), VertexBufferObject::new().unwrap()];
-        self.vao = [VertexArrayObject::new().unwrap(), VertexArrayObject::new().unwrap()];
-        self.ebo = [ElementBufferObject::new().unwrap(), ElementBufferObject::new().unwrap()];
+        let vbo = [VertexBufferObject::new().unwrap(), VertexBufferObject::new().unwrap()];
+        let vao = [VertexArrayObject::new().unwrap(), VertexArrayObject::new().unwrap()];
+        let ebo = [ElementBufferObject::new().unwrap(), ElementBufferObject::new().unwrap()];
         
-        self.viewport(WINDOW_SIZE_X.try_into().unwrap(), WINDOW_SIZE_Y.try_into().unwrap());
+        Self::viewport(WINDOW_SIZE_X.try_into().unwrap(), WINDOW_SIZE_Y.try_into().unwrap());
         
         //TODO: rewrite shaders as struct
-        let vert_shader = self.load_shader(VERT_SHADER, gl::VERTEX_SHADER).unwrap();
-        let frag_shader1 = self.load_shader(FRAG_SHADER1, gl::FRAGMENT_SHADER).unwrap();
-        let frag_shader2 = self.load_shader(FRAG_SHADER2, gl::FRAGMENT_SHADER).unwrap();
-        self.shader_program[0] = self.create_shader_program(vec![vert_shader, frag_shader1]).unwrap();
-        self.shader_program[1] = self.create_shader_program(vec![vert_shader, frag_shader2]).unwrap();
+        let vert_shader1 = Shader::create(VERT_SHADER, gl::VERTEX_SHADER).unwrap();
+        let vert_shader2 = Shader::create(VERT_SHADER, gl::VERTEX_SHADER).unwrap();
+        let frag_shader1 = Shader::create(FRAG_SHADER1, gl::FRAGMENT_SHADER).unwrap();
+        let frag_shader2 = Shader::create(FRAG_SHADER2, gl::FRAGMENT_SHADER).unwrap();
+        let shader_program= [
+            ShaderProgram::create(vert_shader1, frag_shader1).unwrap(),
+            ShaderProgram::create(vert_shader2, frag_shader2).unwrap(),
+        ];
 
         //unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE); }
 
+        return Self{
+            vbo,
+            vao,
+            ebo,
+            shader_program,
+        };
     }
     
     pub fn render(&self, triangles: Vec<Triangle>) {
@@ -158,54 +224,17 @@ impl Renderer {
         self.clear_color(crate::BACKGROUND_COLOR.as_tuple());
         self.clear();
 
-        self.use_shader_program(self.shader_program[0]);
+        self.shader_program[0].use_program();
         self.vao[0].bind();
         unsafe { gl::DrawArrays(gl::TRIANGLES, 0, 3); }
 
-        self.use_shader_program(self.shader_program[1]);
+        self.shader_program[1].use_program();
         self.vao[1].bind();
         unsafe { gl::DrawArrays(gl::TRIANGLES, 0, 3); }
         
         
         //self.ebo[1].bind();
         //unsafe { gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null());}
-    }
-    
-    fn load_shader(&self, shader_src: &str, type_: gl::types::GLenum) -> Result<gl::types::GLuint, Error> {
-            unsafe {
-                let shader = gl::CreateShader(type_);
-                if shader == 0 {return Err(Error::ShaderError("couldn't create shader"))}
-                gl::ShaderSource(
-                    shader,
-                    1,
-                    &(shader_src.as_bytes().as_ptr().cast()),
-                    &(shader_src.len().try_into().unwrap()),
-                );
-
-                gl::CompileShader(shader);
-
-                let mut success = 0;
-                gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
-                if success == 0 { return Err(Error::ShaderError("couldn't compile shader")) }
-                return Ok(shader);
-            }
-    }
-    fn create_shader_program(&self, shaders: Vec<u32>) -> Result<u32, Error> {
-        unsafe{
-            let program = gl::CreateProgram();
-            for shader in &shaders { gl::AttachShader(program, shader.clone()); }
-            gl::LinkProgram(program);
-            
-            let mut success: i32 = 0;
-            gl::GetProgramiv(program, gl::LINK_STATUS, &mut success);
-            if success == 0 { return Err(Error::ShaderError("couldn't create shader program :(")) }
-
-            for shader in &shaders { gl::DeleteShader(shader.clone()); }
-            return Ok(program)
-        }
-    }
-    fn use_shader_program(&self, program: u32) {
-        unsafe { gl::UseProgram(program); }
     }
 
     fn clear_color(&self, bg_color: (f32, f32, f32, f32)) {
@@ -215,9 +244,9 @@ impl Renderer {
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT); }
     }
 
-    fn viewport(&self, x: i32, y: i32) { unsafe { gl::Viewport(0, 0, x, y); } }
+    fn viewport(x: i32, y: i32) { unsafe { gl::Viewport(0, 0, x, y); } }
     pub fn resize(&self, x: i32, y: i32) { 
         println!("resize: {:?}", (x, y));
-        self.viewport(x, y)
+        Self::viewport(x, y)
     }
 }
