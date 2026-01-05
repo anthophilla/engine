@@ -3,9 +3,10 @@ pub mod math;
 pub mod renderer;
 
 #[derive(Debug, Clone)]
-enum Error{
+pub enum Error{
     VAOGenError(&'static str),
     VBOGenError(&'static str),
     EBOGenError(&'static str),
     ShaderError(String),
+    UniformError(&'static str),
 }

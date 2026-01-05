@@ -1,16 +1,19 @@
 use crate::vec3;
-use crate::internals::math::{Vector3, Triangle};
-use crate::internals::renderer::{Renderer};
+use crate::internals::{
+    math::{Vector3, Triangle},
+    renderer::{Renderer},
+    Error,
+};
 
 use glfw::{Action, Context, GlfwReceiver, Key, WindowEvent, fail_on_errors};
 
 use crate::{GAME_NAME, WINDOW_SIZE_X, WINDOW_SIZE_Y};
 
-const TEST_TRIANGLE: Triangle  = Triangle::new(
-    vec3!(-0.5, -0.5, 0.0),
-    vec3!(0.5, -0.5, 0.0),
-    vec3!(0.0, 0.5, 0.0)
-);
+//const TEST_TRIANGLE: Triangle  = Triangle::new(
+//    vec3!(-0.5, -0.5, 0.0),
+//    vec3!(0.5, -0.5, 0.0),
+//    vec3!(0.0, 0.5, 0.0)
+//);
 
 const TEST_TRIANGLE1: Triangle  = Triangle::new(
     vec3!(0.5, 0.5, 0.0),
@@ -64,7 +67,7 @@ impl Game {
             events
         }
     }
-    pub fn start(&mut self, ) -> Result<(), ()> {
+    pub fn start(&mut self, ) -> Result<(), Error> {
         
         self.window.make_current();
         self.window.set_key_polling(true);
@@ -73,7 +76,7 @@ impl Game {
         while !self.window.should_close() {
             
             self.process_events();
-            self.renderer.render(vec![TEST_TRIANGLE1, TEST_TRIANGLE2]);
+            self.renderer.render(vec![TEST_TRIANGLE1, TEST_TRIANGLE2])?;
             self.window.swap_buffers();
         }
         

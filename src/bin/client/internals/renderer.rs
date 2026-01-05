@@ -1,27 +1,26 @@
-use gl::types::*;
+use std::collections::HashMap;
+use std::fmt::format;
+use gl::{DetachShader, types::*};
 use crate::internals::math::Triangle;
 use crate::{WINDOW_SIZE_X, WINDOW_SIZE_Y};
 use crate::internals::Error;
 
 // :(
 const VERT_SHADER: &str = r#"#version 330 core
-  layout (location = 0) in vec3 pos;
+  layout (location = 0) in vec3 aPos;
+  //out vec4 vertexColor;
+  //uniform vec4 customColor;
   void main() {
-    gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);
+    gl_Position = vec4(aPos, 1.0);
+    //vertexColor = customColor;
   }
 "#;
-const FRAG_SHADER1: &str = r#"#version 330 core
-  out vec4 final_color;
-
+const FRAG_SHADER: &str = r#"#version 330 core
+  out vec4 FragColor;
+  //in vec4 vertexColor;
+  uniform vec4 customColor;
   void main() {
-    final_color = vec4(1.0, 0.5, 0.2, 1.0);
-  }
-"#;
-const FRAG_SHADER2: &str = r#"#version 330 core
-  out vec4 final_color;
-
-  void main() {
-    final_color = vec4(0.0, 1.0, 0.0, 1.0);
+    FragColor = customColor;
   }
 "#;
 
@@ -119,7 +118,7 @@ impl Shader {
                 let mut info_buffer: Vec<u8> = Vec::with_capacity(1024);
                 let mut log_len = 0_i32;
                 gl::GetShaderInfoLog(shader, 1024, &mut log_len, info_buffer.as_mut_ptr().cast());
-                //info_buffer.set_len(log_len.try_into().unwrap());
+                info_buffer.set_len(log_len.try_into().unwrap());
                 let msg = format!("Shader compile error: {}", String::from_utf8_lossy(&info_buffer));
                 return Err(Error::ShaderError(msg))
             }
@@ -148,7 +147,7 @@ impl ShaderProgram {
                 let mut info_buffer: Vec<u8> = Vec::with_capacity(1024);
                 let mut log_len = 0_i32;
                 gl::GetShaderInfoLog(program, 1024, &mut log_len, info_buffer.as_mut_ptr().cast());
-                //info_buffer.set_len(log_len.try_into().unwrap());
+                info_buffer.set_len(log_len.try_into().unwrap());
                 let msg = format!("Shader program link error: {}", String::from_utf8_lossy(&info_buffer));
                 return Err(Error::ShaderError(msg))
             }
@@ -163,11 +162,48 @@ impl ShaderProgram {
     }
 }
 
+trait Uniform {
+    fn new(location: i32) -> Self where Self: Sized;
+    fn from_name(name: &'static str, shader_program: &ShaderProgram) -> Result<Self, Error> where Self: Sized {
+        let uniform = unsafe { gl::GetUniformLocation(shader_program.program, name.as_ptr().cast()) };
+        //REMEMBER TO ADD A NULL BYTE to name ('\0')
+        if uniform==-1 {return Err(Error::UniformError(name));}
+        return Ok(Self::new(uniform))
+    }
+}
+struct UniformF<const N: usize> { location: i32 }
+impl<const N: usize> Uniform for UniformF<N> {
+    fn new(location: i32) -> Self { Self{location} }
+}
+
+impl UniformF<1> {
+    fn set(&self, x: f32) { unsafe { gl::Uniform1f(self.location, x); } }
+}
+impl UniformF<2> {
+    fn set(&self, x: f32, y: f32) { unsafe { gl::Uniform2f(self.location, x, y); } }
+}
+impl UniformF<3> {
+    fn set(&self, x: f32, y: f32, z: f32) { unsafe { gl::Uniform3f(self.location, x, y, z); } }
+}
+impl UniformF<4> {
+    fn set(&self, x: f32, y: f32, z: f32, w: f32) { unsafe { gl::Uniform4f(self.location, x, y, z, w); } }
+}
+
+// this is sadly the only way to do this?
+enum AnyUniform {
+    F1(UniformF<1>),
+    F2(UniformF<2>),
+    F3(UniformF<3>),
+    F4(UniformF<4>),
+}
+
+
 pub struct Renderer {
     vbo: [VertexBufferObject; 2],
     vao: [VertexArrayObject; 2],
     ebo: [ElementBufferObject; 2],
-    shader_program: [ShaderProgram; 2],
+    shader_program: Vec<ShaderProgram>,
+    uniforms: HashMap<&'static str, AnyUniform>,
 }
 impl Renderer {
     pub fn init(window: &mut glfw::Window) -> Self {
@@ -181,25 +217,25 @@ impl Renderer {
         
         //TODO: rewrite shaders as struct
         let vert_shader1 = Shader::create(VERT_SHADER, gl::VERTEX_SHADER).unwrap();
-        let vert_shader2 = Shader::create(VERT_SHADER, gl::VERTEX_SHADER).unwrap();
-        let frag_shader1 = Shader::create(FRAG_SHADER1, gl::FRAGMENT_SHADER).unwrap();
-        let frag_shader2 = Shader::create(FRAG_SHADER2, gl::FRAGMENT_SHADER).unwrap();
-        let shader_program= [
-            ShaderProgram::create(vert_shader1, frag_shader1).unwrap(),
-            ShaderProgram::create(vert_shader2, frag_shader2).unwrap(),
-        ];
+        let frag_shader1 = Shader::create(FRAG_SHADER, gl::FRAGMENT_SHADER).unwrap();
+        let shader_program= vec![
+            ShaderProgram::create(vert_shader1, frag_shader1).unwrap()];
+        
+        let uniforms = HashMap::from([
+            ("customColor", AnyUniform::F4(UniformF::from_name("customColor\0", &shader_program[0]).unwrap())),
+        ]);
 
         //unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE); }
-
         return Self{
             vbo,
             vao,
             ebo,
             shader_program,
+            uniforms,
         };
     }
     
-    pub fn render(&self, triangles: Vec<Triangle>) {
+    pub fn render(&self, triangles: Vec<Triangle>) -> Result<(), Error> {
         for (i, triangle) in triangles.iter().enumerate() {
             //let indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
             let mut verts: Vec<f32> = vec![];
@@ -224,17 +260,23 @@ impl Renderer {
         self.clear_color(crate::BACKGROUND_COLOR.as_tuple());
         self.clear();
 
+        let AnyUniform::F4(u) = self.uniforms.get("customColor").unwrap()
+            else { return Err(Error::UniformError("customColor")); };
+        u.set(0.0, 1.0, 0.0, 0.0);
+
         self.shader_program[0].use_program();
         self.vao[0].bind();
         unsafe { gl::DrawArrays(gl::TRIANGLES, 0, 3); }
 
-        self.shader_program[1].use_program();
+        u.set(1.0, 0.0, 0.0, 0.0);
+
+        self.shader_program[0].use_program();
         self.vao[1].bind();
         unsafe { gl::DrawArrays(gl::TRIANGLES, 0, 3); }
         
-        
         //self.ebo[1].bind();
         //unsafe { gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null());}
+        return Ok(()) //TODO: return deltatime
     }
 
     fn clear_color(&self, bg_color: (f32, f32, f32, f32)) {
