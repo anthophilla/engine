@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::format;
-use gl::{DetachShader, types::*};
+use gl::{types::*};
 use crate::internals::math::Triangle;
 use crate::{WINDOW_SIZE_X, WINDOW_SIZE_Y};
 use crate::internals::Error;
@@ -8,19 +7,21 @@ use crate::internals::Error;
 // :(
 const VERT_SHADER: &str = r#"#version 330 core
   layout (location = 0) in vec3 aPos;
-  //out vec4 vertexColor;
-  //uniform vec4 customColor;
+  layout (location = 1) in vec4 aColor;
+  //vec4 aColor = vec4(0.0, 0.0, 0.0, 1.0);
+  out vec4 vertexColor;
+
   void main() {
     gl_Position = vec4(aPos, 1.0);
-    //vertexColor = customColor;
+    vertexColor = aColor;
   }
 "#;
 const FRAG_SHADER: &str = r#"#version 330 core
   out vec4 FragColor;
-  //in vec4 vertexColor;
-  uniform vec4 customColor;
+  in vec4 vertexColor;
+  //uniform vec4 customColor;
   void main() {
-    FragColor = customColor;
+    FragColor = vertexColor;
   }
 "#;
 
@@ -57,7 +58,7 @@ impl VertexBufferObject {
     pub fn _unbind(&self) {
         unsafe {gl::BindBuffer(gl::ARRAY_BUFFER, 0);}
     }
-    pub fn buffer_vertices(&self, vertices: &[f32], usage: GLenum) {
+    pub fn buffer(&self, vertices: &[([f32; 3], [f32; 4])], usage: GLenum) {
         //dbg!(&vertices);
         unsafe{
             gl::BufferData(
@@ -99,14 +100,14 @@ impl ElementBufferObject {
 
 struct Shader(u32);
 impl Shader {
-    fn create(source: &'static str, shader_type: u32) -> Result<Self, Error> {
+    fn create(source: &[u8], shader_type: u32) -> Result<Self, Error> {
         unsafe {
             let shader = gl::CreateShader(shader_type);
             if shader == 0 {return Err(Error::ShaderError("couldn't create shader".to_string()))}
             gl::ShaderSource(
                 shader,
                 1,
-                &(source.as_bytes().as_ptr().cast()),
+                &(source.as_ptr().cast()),
                 &(source.len().try_into().unwrap()),
             );
 
@@ -124,6 +125,13 @@ impl Shader {
             }
             return Ok(Self(shader));
         }
+    }
+    pub fn from_file(path: &'static str, shader_type: u32) -> Result<Self, Error> {
+        let source = match std::fs::read(path) {
+            Ok(d) => d,
+            Err(_) => return Err(Error::ShaderError(format!("couldn't find: {}", path).to_string()))
+        };
+        Self::create(&source, shader_type)
     }
 }
 struct ShaderProgram {
@@ -216,13 +224,13 @@ impl Renderer {
         Self::viewport(WINDOW_SIZE_X.try_into().unwrap(), WINDOW_SIZE_Y.try_into().unwrap());
         
         //TODO: rewrite shaders as struct
-        let vert_shader1 = Shader::create(VERT_SHADER, gl::VERTEX_SHADER).unwrap();
-        let frag_shader1 = Shader::create(FRAG_SHADER, gl::FRAGMENT_SHADER).unwrap();
+        let vert_shader1 = Shader::from_file("src/bin/client/shaders/shader.vert", gl::VERTEX_SHADER).unwrap();
+        let frag_shader1 = Shader::from_file("src/bin/client/shaders/shader.frag", gl::FRAGMENT_SHADER).unwrap();
         let shader_program= vec![
             ShaderProgram::create(vert_shader1, frag_shader1).unwrap()];
         
         let uniforms = HashMap::from([
-            ("customColor", AnyUniform::F4(UniformF::from_name("customColor\0", &shader_program[0]).unwrap())),
+            //("offset", AnyUniform::F3(UniformF::from_name("offset\0", &shader_program[0]).unwrap())),
         ]);
 
         //unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE); }
@@ -238,20 +246,24 @@ impl Renderer {
     pub fn render(&self, triangles: Vec<Triangle>) -> Result<(), Error> {
         for (i, triangle) in triangles.iter().enumerate() {
             //let indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
-            let mut verts: Vec<f32> = vec![];
+            let mut verts: Vec<([f32; 3], [f32; 4])> = vec![];
             for i in triangle.as_array() {
-                for x in i { verts.push(x); }
+                verts.push((i, [1.0, 0.0, 0.0, 1.0]));
             }
+            dbg!(&verts);
             
             self.vao[i].bind();
             self.vbo[i].bind();
-            self.vbo[i].buffer_vertices(&verts[..], gl::STATIC_DRAW);
+            self.vbo[i].buffer(&verts[..], gl::STATIC_DRAW);
     
             //explain to gl how to read supplied vertices and save it to vao
             unsafe {
-                //size_of::<[f32; 3]>().try_into().unwrap()
-                gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 0, 0 as *const _);
+                //vertices
+                gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, size_of::<([f32; 3], [f32; 4])>() as i32, 0 as *const _);
                 gl::EnableVertexAttribArray(0);
+                //color
+                gl::VertexAttribPointer(1, 4, gl::FLOAT, gl::FALSE, size_of::<([f32; 3], [f32; 4])>() as i32, size_of::<[f32; 3]>() as *const _);
+                gl::EnableVertexAttribArray(1);
             }
             //self.ebo[i].bind();
             //self.ebo[i].buffer_elements(indices, gl::STATIC_DRAW);
@@ -260,15 +272,15 @@ impl Renderer {
         self.clear_color(crate::BACKGROUND_COLOR.as_tuple());
         self.clear();
 
-        let AnyUniform::F4(u) = self.uniforms.get("customColor").unwrap()
-            else { return Err(Error::UniformError("customColor")); };
-        u.set(0.0, 1.0, 0.0, 0.0);
+        //let AnyUniform::F3(offset) = self.uniforms.get("offset").unwrap()
+        //    else { return Err(Error::UniformError("customColor")); };
+        //offset.set(0.0, 1.0, 0.0);
 
         self.shader_program[0].use_program();
         self.vao[0].bind();
         unsafe { gl::DrawArrays(gl::TRIANGLES, 0, 3); }
 
-        u.set(1.0, 0.0, 0.0, 0.0);
+        //offset.set(-1.0, 0.0, 0.0);
 
         self.shader_program[0].use_program();
         self.vao[1].bind();
