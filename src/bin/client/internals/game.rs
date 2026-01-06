@@ -9,12 +9,6 @@ use glfw::{Action, Context, GlfwReceiver, Key, WindowEvent, fail_on_errors};
 
 use crate::{GAME_NAME, WINDOW_SIZE_X, WINDOW_SIZE_Y};
 
-//const TEST_TRIANGLE: Triangle  = Triangle::new(
-//    vec3!(-0.5, -0.5, 0.0),
-//    vec3!(0.5, -0.5, 0.0),
-//    vec3!(0.0, 0.5, 0.0)
-//);
-
 const TEST_TRIANGLE1: Triangle  = Triangle::new(
     vec3!(0.5, 0.5, 0.0),
     vec3!(0.5, -0.5, 0.0),
@@ -89,6 +83,9 @@ impl Game {
             match event {
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                     self.window.set_should_close(true)
+                },
+                glfw::WindowEvent::Key(Key::F1, _, Action::Press, _) => {
+                    self.renderer.switch_wireframe()
                 },
                 glfw::WindowEvent::Size(x, y) => self.renderer.resize(x, y),
                 _ => {},

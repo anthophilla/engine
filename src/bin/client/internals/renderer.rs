@@ -212,6 +212,7 @@ pub struct Renderer {
     ebo: [ElementBufferObject; 2],
     shader_program: Vec<ShaderProgram>,
     uniforms: HashMap<&'static str, AnyUniform>,
+    wireframe: bool
 }
 impl Renderer {
     pub fn init(window: &mut glfw::Window) -> Self {
@@ -233,13 +234,13 @@ impl Renderer {
             //("offset", AnyUniform::F3(UniformF::from_name("offset\0", &shader_program[0]).unwrap())),
         ]);
 
-        //unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE); }
         return Self{
             vbo,
             vao,
             ebo,
             shader_program,
             uniforms,
+            wireframe: true,
         };
     }
     
@@ -302,5 +303,9 @@ impl Renderer {
     pub fn resize(&self, x: i32, y: i32) { 
         println!("resize: {:?}", (x, y));
         Self::viewport(x, y)
+    }
+    pub fn switch_wireframe(&mut self) {
+        if self.wireframe { unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE); }; self.wireframe=false }
+        else { unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL); }; self.wireframe=true }
     }
 }
