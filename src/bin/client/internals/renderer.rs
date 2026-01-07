@@ -120,6 +120,7 @@ struct ShaderProgram {
     program: u32,
     vertex_shader: Shader,
     frag_shader:   Shader,
+    uniforms: HashMap<&'static str, AnyUniform>
 }
 impl ShaderProgram {
     fn create(vertex_shader: Shader, frag_shader: Shader) -> Result<Self, Error> {
@@ -144,11 +145,21 @@ impl ShaderProgram {
 
             gl::DeleteShader(vertex_shader.0.clone());
             gl::DeleteShader(frag_shader.0.clone());
-            return Ok(ShaderProgram { program, vertex_shader, frag_shader })
+            return Ok(ShaderProgram { program, vertex_shader, frag_shader, uniforms: HashMap::new() })
         }
     }
     fn use_program(&self) {
         unsafe { gl::UseProgram(self.program); }
+    }
+    fn add_uniform(&mut self, t: UniformType, name: &'static str) -> Result<AnyUniform, Error> {
+        self.uniforms.insert(name, AnyUniform::from_name(t, name, &self).unwrap());
+        Ok(self.uniforms.get(name).unwrap().clone())
+    }
+    fn get_uniform(&self, name: &'static str) -> Result<AnyUniform, Error> { 
+        match self.uniforms.get(name) {
+            Some(u) => Ok(u.clone()),
+            None => Err(Error::UniformError("cannot find uniform in hashmap"))
+        } 
     }
 }
 
@@ -161,6 +172,7 @@ trait Uniform {
         return Ok(Self::new(uniform))
     }
 }
+#[derive(Clone)]
 struct UniformF<const N: usize> { location: i32 }
 impl<const N: usize> Uniform for UniformF<N> {
     fn new(location: i32) -> Self { Self{location} }
@@ -179,12 +191,60 @@ impl UniformF<4> {
     fn set(&self, x: f32, y: f32, z: f32, w: f32) { unsafe { gl::Uniform4f(self.location, x, y, z, w); } }
 }
 
-// this is sadly the only way to do this?
-enum AnyUniform {
+#[derive(Clone)]
+struct UniformI<const N: usize> { location: i32 }
+impl<const N: usize> Uniform for UniformI<N> {
+    fn new(location: i32) -> Self { Self{location} }
+}
+impl UniformI<1> {
+    fn set(&self, x: i32) { unsafe { gl::Uniform1i(self.location, x); } }
+}
+impl UniformI<2> {
+    fn set(&self, x: i32, y: i32) { unsafe { gl::Uniform2i(self.location, x, y); } }
+}
+impl UniformI<3> {
+    fn set(&self, x: i32, y: i32, z: i32) { unsafe { gl::Uniform3i(self.location, x, y, z); } }
+}
+impl UniformI<4> {
+    fn set(&self, x: i32, y: i32, z: i32, w: i32) { unsafe { gl::Uniform4i(self.location, x, y, z, w); } }
+}
+
+#[derive(Clone)]
+enum AnyUniform { // this is sadly the only way to do this?
     F1(UniformF<1>),
     F2(UniformF<2>),
     F3(UniformF<3>),
     F4(UniformF<4>),
+    I1(UniformI<1>),
+    I2(UniformI<2>),
+    I3(UniformI<3>),
+    I4(UniformI<4>),
+}
+enum UniformType {
+    F1,
+    F2,
+    F3,
+    F4,
+    I1, //1i
+    I2,
+    I3,
+    I4,
+}
+impl AnyUniform {
+    fn from_name(n: UniformType, name: &'static str, shader_program:&ShaderProgram) -> Result<Self, Error> {
+        match n {
+            UniformType::F1 => Ok(Self::F1(UniformF::<1>::from_name(name, shader_program).unwrap())),
+            UniformType::F2 => Ok(Self::F2(UniformF::<2>::from_name(name, shader_program).unwrap())),
+            UniformType::F3 => Ok(Self::F3(UniformF::<3>::from_name(name, shader_program).unwrap())),
+            UniformType::F4 => Ok(Self::F4(UniformF::<4>::from_name(name, shader_program).unwrap())),
+            UniformType::I1 => Ok(Self::I1(UniformI::<1>::from_name(name, shader_program).unwrap())),
+            UniformType::I2 => Ok(Self::I2(UniformI::<2>::from_name(name, shader_program).unwrap())),
+            UniformType::I3 => Ok(Self::I3(UniformI::<3>::from_name(name, shader_program).unwrap())),
+            UniformType::I4 => Ok(Self::I4(UniformI::<4>::from_name(name, shader_program).unwrap())),
+
+            _ => Err(Error::UniformError("no such uniform type"))
+        }
+    }
 }
 
 struct Texture {
@@ -249,7 +309,6 @@ pub struct Renderer {
     vao: [VertexArrayObject; 2],
     ebo: [ElementBufferObject; 2],
     shader_program: Vec<ShaderProgram>,
-    uniforms: HashMap<&'static str, AnyUniform>,
     textures: HashMap<&'static str, Texture>,
     wireframe: bool
 }
@@ -265,14 +324,18 @@ impl Renderer {
         
         let vert_shader1 = Shader::from_file("src/bin/client/shaders/shader.vert", gl::VERTEX_SHADER).unwrap();
         let frag_shader1 = Shader::from_file("src/bin/client/shaders/shader.frag", gl::FRAGMENT_SHADER).unwrap();
-        let shader_program= vec![
-            ShaderProgram::create(vert_shader1, frag_shader1).unwrap()];
-        
-        let uniforms = HashMap::from([
-            //("offset", AnyUniform::F3(UniformF::from_name("offset\0", &shader_program[0]).unwrap())),
-        ]);
+        let mut shader_program= vec![
+            ShaderProgram::create(vert_shader1, frag_shader1).unwrap()
+        ];
+        let u1 = shader_program[0].add_uniform(UniformType::I1, "texture1\0").unwrap();
+        let u2 = shader_program[0].add_uniform(UniformType::I1, "texture2\0").unwrap();
+        match (u1, u2) {
+            (AnyUniform::I1(x), AnyUniform::I1(y)) => {x.set(0); y.set(0)},
+            _ => panic!("how?")
+        };
         let textures = HashMap::from([
-            ("container", Texture::from_file("src/bin/client/textures/container.jpg").unwrap())
+            ("container", Texture::from_file("src/bin/client/textures/container.jpg").unwrap()),
+            ("awesomeface", Texture::from_file("src/bin/client/textures/awesomeface.png").unwrap())
         ]);
         
         Self::set_texture_params();
@@ -282,13 +345,12 @@ impl Renderer {
             vao,
             ebo,
             shader_program,
-            uniforms,
             textures,
             wireframe: true,
         };
     }
     
-    pub fn render(&self, triangles: Vec<Triangle>, text_coords: [[f32; 2]; 6]) -> Result<(), Error> {
+    pub fn render(&mut self, triangles: Vec<Triangle>, text_coords: [[f32; 2]; 6]) -> Result<(), Error> {
         let mut t = 0;
         for (i, triangle) in triangles.iter().enumerate() {
             //let indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
@@ -324,18 +386,14 @@ impl Renderer {
         self.clear_color(crate::BACKGROUND_COLOR.as_tuple());
         self.clear();
 
-        //let AnyUniform::F3(offset) = self.uniforms.get("offset").unwrap()
-        //    else { return Err(Error::UniformError("customColor")); };
-        //offset.set(0.0, 1.0, 0.0);
-
         self.shader_program[0].use_program();
-        // If your texture code doesn't work or shows up as completely black, continue reading and work your way to the last example that should work. On some drivers it is required to assign a texture unit to each sampler uniform, which is something we'll discuss further in this chapter.
+
+        unsafe { gl::Uniform1i(gl::GetUniformLocation(self.shader_program[0].program, "texture1".as_ptr().cast()), 0); }
         self.textures.get("container").unwrap().bind(0);
+        self.textures.get("awesomeface").unwrap().bind(1);
         self.vao[0].bind();
         self.ebo[0].bind();
         unsafe { gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null());}
-
-        //offset.set(-1.0, 0.0, 0.0);
 
         self.shader_program[0].use_program();
         self.vao[1].bind();
