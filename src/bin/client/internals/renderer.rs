@@ -261,7 +261,7 @@ impl Texture {
         let img = match ImageReader::new(
             Cursor::new(source)
         ).with_guessed_format().unwrap().decode() {
-            Ok(a) => a.to_rgba8(),
+            Ok(a) => a.flipv().to_rgba8(),
             Err(e) => return Err(Error::TextureError(format!("couldn't decode? image: {}", e)))
         };
 
@@ -327,17 +327,14 @@ impl Renderer {
         let mut shader_program= vec![
             ShaderProgram::create(vert_shader1, frag_shader1).unwrap()
         ];
-        let u1 = shader_program[0].add_uniform(UniformType::I1, "texture1\0").unwrap();
-        let u2 = shader_program[0].add_uniform(UniformType::I1, "texture2\0").unwrap();
-        match (u1, u2) {
-            (AnyUniform::I1(x), AnyUniform::I1(y)) => {x.set(0); y.set(0)},
-            _ => panic!("how?")
-        };
+
+        shader_program[0].add_uniform(UniformType::I1, "texture1\0").unwrap();
+        shader_program[0].add_uniform(UniformType::I1, "texture2\0").unwrap();
+
         let textures = HashMap::from([
             ("container", Texture::from_file("src/bin/client/textures/container.jpg").unwrap()),
             ("awesomeface", Texture::from_file("src/bin/client/textures/awesomeface.png").unwrap())
         ]);
-        
         Self::set_texture_params();
 
         return Self{
@@ -391,6 +388,12 @@ impl Renderer {
         unsafe { gl::Uniform1i(gl::GetUniformLocation(self.shader_program[0].program, "texture1".as_ptr().cast()), 0); }
         self.textures.get("container").unwrap().bind(0);
         self.textures.get("awesomeface").unwrap().bind(1);
+
+        match (self.shader_program[0].get_uniform("texture1\0").unwrap(), self.shader_program[0].get_uniform("texture2\0").unwrap()) {
+            (AnyUniform::I1(x), AnyUniform::I1(y)) => {x.set(0); y.set(1)},
+            _ => panic!("how?")
+        }; // wtf :( this shit gotta be extra slow
+
         self.vao[0].bind();
         self.ebo[0].bind();
         unsafe { gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null());}
