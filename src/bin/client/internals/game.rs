@@ -20,6 +20,15 @@ const TEST_TRIANGLE2: Triangle  = Triangle::new(
     vec3!(-0.5, 0.5, 0.0)
 );
 
+const TEXTURE_COORDS: [[f32; 2]; 6] = [
+    [1.0, 1.0],
+    [1.0, 0.0],
+    [0.0, 1.0],
+
+    [1.0, 0.0],
+    [0.0, 0.0],
+    [0.0, 1.0],
+];
 
 struct Player {
     position: Vector3,
@@ -70,7 +79,7 @@ impl Game {
         while !self.window.should_close() {
             
             self.process_events();
-            self.renderer.render(vec![TEST_TRIANGLE1, TEST_TRIANGLE2])?;
+            self.renderer.render(vec![TEST_TRIANGLE1, TEST_TRIANGLE2], TEXTURE_COORDS)?;
             self.window.swap_buffers();
         }
         

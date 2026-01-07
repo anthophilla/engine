@@ -9,4 +9,5 @@ pub enum Error{
     EBOGenError(&'static str),
     ShaderError(String),
     UniformError(&'static str),
+    TextureError(String),
 }

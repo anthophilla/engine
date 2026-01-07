@@ -1,29 +1,11 @@
 use std::collections::HashMap;
+use std::mem::offset_of;
+use std::io::Cursor;
 use gl::{types::*};
+use image::ImageReader;
 use crate::internals::math::Triangle;
 use crate::{WINDOW_SIZE_X, WINDOW_SIZE_Y};
 use crate::internals::Error;
-
-// :(
-const VERT_SHADER: &str = r#"#version 330 core
-  layout (location = 0) in vec3 aPos;
-  layout (location = 1) in vec4 aColor;
-  //vec4 aColor = vec4(0.0, 0.0, 0.0, 1.0);
-  out vec4 vertexColor;
-
-  void main() {
-    gl_Position = vec4(aPos, 1.0);
-    vertexColor = aColor;
-  }
-"#;
-const FRAG_SHADER: &str = r#"#version 330 core
-  out vec4 FragColor;
-  in vec4 vertexColor;
-  //uniform vec4 customColor;
-  void main() {
-    FragColor = vertexColor;
-  }
-"#;
 
 struct VertexArrayObject(GLuint);
 impl VertexArrayObject {
@@ -58,7 +40,7 @@ impl VertexBufferObject {
     pub fn _unbind(&self) {
         unsafe {gl::BindBuffer(gl::ARRAY_BUFFER, 0);}
     }
-    pub fn buffer(&self, vertices: &[([f32; 3], [f32; 4])], usage: GLenum) {
+    pub fn buffer(&self, vertices: &[Vertex], usage: GLenum) {
         //dbg!(&vertices);
         unsafe{
             gl::BufferData(
@@ -85,13 +67,13 @@ impl ElementBufferObject {
     pub fn _unbind(&self) {
         unsafe {gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);}
     }
-    pub fn buffer_elements(&self, vertices: Vec<u32>, usage: GLenum) {
+    pub fn buffer_elements(&self, indices: Vec<[i32; 3]>, usage: GLenum) {
         
         unsafe{
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
-                size_of_val(&vertices) as isize,
-                vertices.as_ptr().cast(),
+                size_of_val(&indices) as isize,
+                indices.as_ptr().cast(),
                 usage,
             );
         }
@@ -205,6 +187,62 @@ enum AnyUniform {
     F4(UniformF<4>),
 }
 
+struct Texture {
+    texture: u32,
+    width:  u32,
+    height: u32,
+}
+impl Texture {
+    fn from_file(path: &'static str) -> Result<Self, Error> {
+        let source = match std::fs::read(path) {
+            Ok(d) => d,
+            Err(_) => return Err(Error::TextureError(format!("couldn't find: {}", path)))
+        };
+        let img = match ImageReader::new(
+            Cursor::new(source)
+        ).with_guessed_format().unwrap().decode() {
+            Ok(a) => a.to_rgba8(),
+            Err(e) => return Err(Error::TextureError(format!("couldn't decode? image: {}", e)))
+        };
+
+        let (width, height) = img.dimensions();
+        let mut texture: u32 = 0;
+
+        unsafe {
+            gl::GenTextures(1, &mut texture);
+            gl::BindTexture(gl::TEXTURE_2D, texture);
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA as i32,
+                width as i32,
+                height as i32,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                img.as_ptr().cast()
+            );
+            gl::GenerateMipmap(gl::TEXTURE_2D);
+        }
+        return Ok(Self { texture, width, height })
+    }
+    fn bind(&self, texture_unit: u32) { unsafe { 
+        gl::ActiveTexture(gl::TEXTURE0+texture_unit);
+        gl::BindTexture(gl::TEXTURE_2D, self.texture);
+    } }
+}
+
+#[repr(C)]
+struct Vertex {
+    position:  [f32; 3],
+    color:     [f32; 4],
+    tex_coord: [f32; 2],
+}
+impl Vertex {
+    fn new(position: [f32; 3], color: [f32; 4], tex_coord: [f32; 2]) -> Self {
+        Self{position, color, tex_coord}
+    }
+}
 
 pub struct Renderer {
     vbo: [VertexBufferObject; 2],
@@ -212,6 +250,7 @@ pub struct Renderer {
     ebo: [ElementBufferObject; 2],
     shader_program: Vec<ShaderProgram>,
     uniforms: HashMap<&'static str, AnyUniform>,
+    textures: HashMap<&'static str, Texture>,
     wireframe: bool
 }
 impl Renderer {
@@ -222,9 +261,8 @@ impl Renderer {
         let vao = [VertexArrayObject::new().unwrap(), VertexArrayObject::new().unwrap()];
         let ebo = [ElementBufferObject::new().unwrap(), ElementBufferObject::new().unwrap()];
         
-        Self::viewport(WINDOW_SIZE_X.try_into().unwrap(), WINDOW_SIZE_Y.try_into().unwrap());
+        Self::set_viewport(WINDOW_SIZE_X.try_into().unwrap(), WINDOW_SIZE_Y.try_into().unwrap());
         
-        //TODO: rewrite shaders as struct
         let vert_shader1 = Shader::from_file("src/bin/client/shaders/shader.vert", gl::VERTEX_SHADER).unwrap();
         let frag_shader1 = Shader::from_file("src/bin/client/shaders/shader.frag", gl::FRAGMENT_SHADER).unwrap();
         let shader_program= vec![
@@ -233,6 +271,11 @@ impl Renderer {
         let uniforms = HashMap::from([
             //("offset", AnyUniform::F3(UniformF::from_name("offset\0", &shader_program[0]).unwrap())),
         ]);
+        let textures = HashMap::from([
+            ("container", Texture::from_file("src/bin/client/textures/container.jpg").unwrap())
+        ]);
+        
+        Self::set_texture_params();
 
         return Self{
             vbo,
@@ -240,18 +283,22 @@ impl Renderer {
             ebo,
             shader_program,
             uniforms,
+            textures,
             wireframe: true,
         };
     }
     
-    pub fn render(&self, triangles: Vec<Triangle>) -> Result<(), Error> {
+    pub fn render(&self, triangles: Vec<Triangle>, text_coords: [[f32; 2]; 6]) -> Result<(), Error> {
+        let mut t = 0;
         for (i, triangle) in triangles.iter().enumerate() {
             //let indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
-            let mut verts: Vec<([f32; 3], [f32; 4])> = vec![];
-            for i in triangle.as_array() {
-                verts.push((i, [1.0, 0.0, 0.0, 1.0]));
+            let mut verts: Vec<Vertex> = vec![];
+            for v in triangle.as_array() {
+                //verts.push((v, [1.0, 0.0, 0.0, 1.0], text_coords[t]));
+                verts.push(Vertex::new(v, [1.0, 0.0, 0.0, 1.0], text_coords[t]));
+                t+=1;
             }
-            dbg!(&verts);
+            //dbg!(&verts);
             
             self.vao[i].bind();
             self.vbo[i].bind();
@@ -259,15 +306,19 @@ impl Renderer {
     
             //explain to gl how to read supplied vertices and save it to vao
             unsafe {
+                let stride = size_of::<Vertex>() as i32;
                 //vertices
-                gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, size_of::<([f32; 3], [f32; 4])>() as i32, 0 as *const _);
+                gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, position) as *const _);
                 gl::EnableVertexAttribArray(0);
                 //color
-                gl::VertexAttribPointer(1, 4, gl::FLOAT, gl::FALSE, size_of::<([f32; 3], [f32; 4])>() as i32, size_of::<[f32; 3]>() as *const _);
+                gl::VertexAttribPointer(1, 4, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, color) as *const _);
                 gl::EnableVertexAttribArray(1);
+                //texture
+                gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, tex_coord) as *const _);
+                gl::EnableVertexAttribArray(2);
             }
-            //self.ebo[i].bind();
-            //self.ebo[i].buffer_elements(indices, gl::STATIC_DRAW);
+            self.ebo[i].bind();
+            self.ebo[i].buffer_elements(vec![[0, 1, 2]], gl::STATIC_DRAW);
         }
 
         self.clear_color(crate::BACKGROUND_COLOR.as_tuple());
@@ -278,17 +329,18 @@ impl Renderer {
         //offset.set(0.0, 1.0, 0.0);
 
         self.shader_program[0].use_program();
+        // If your texture code doesn't work or shows up as completely black, continue reading and work your way to the last example that should work. On some drivers it is required to assign a texture unit to each sampler uniform, which is something we'll discuss further in this chapter.
+        self.textures.get("container").unwrap().bind(0);
         self.vao[0].bind();
-        unsafe { gl::DrawArrays(gl::TRIANGLES, 0, 3); }
+        self.ebo[0].bind();
+        unsafe { gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null());}
 
         //offset.set(-1.0, 0.0, 0.0);
 
         self.shader_program[0].use_program();
         self.vao[1].bind();
-        unsafe { gl::DrawArrays(gl::TRIANGLES, 0, 3); }
-        
-        //self.ebo[1].bind();
-        //unsafe { gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null());}
+        self.ebo[1].bind();
+        unsafe { gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null());}        
         return Ok(()) //TODO: return deltatime
     }
 
@@ -299,10 +351,18 @@ impl Renderer {
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT); }
     }
 
-    fn viewport(x: i32, y: i32) { unsafe { gl::Viewport(0, 0, x, y); } }
+    fn set_viewport(x: i32, y: i32) { unsafe { gl::Viewport(0, 0, x, y); } }
+    fn set_texture_params() { unsafe {
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT.try_into().unwrap());
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT.try_into().unwrap());
+
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST.try_into().unwrap());
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST.try_into().unwrap());
+
+    } }
     pub fn resize(&self, x: i32, y: i32) { 
         println!("resize: {:?}", (x, y));
-        Self::viewport(x, y)
+        Self::set_viewport(x, y)
     }
     pub fn switch_wireframe(&mut self) {
         if self.wireframe { unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE); }; self.wireframe=false }
