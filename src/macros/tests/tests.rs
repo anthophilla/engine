@@ -15,6 +15,8 @@ fn vect3() {
     assert_eq!(a-b, Vector3{x: a.x-b.x, y: a.y-b.y, z: a.z-b.z});
     assert_eq!(a*b, Vector3{x: a.x*b.x, y: a.y*b.y, z: a.z*b.z});
     assert_eq!(a/b, Vector3{x: a.x/b.x, y: a.y/b.y, z: a.z/b.z});
+
+    assert_eq!(a+0.2, Vector3{x: a.x+0.2, y: a.y+0.2, z: a.z+0.2})
 }
 #[test]
 fn vect4() {
@@ -32,4 +34,6 @@ fn vect4() {
     assert_eq!(a-b, Vector4{x: a.x-b.x, y: a.y-b.y, z: a.z-b.z, w: a.w-b.w});
     assert_eq!(a*b, Vector4{x: a.x*b.x, y: a.y*b.y, z: a.z*b.z, w: a.w*b.w});
     assert_eq!(a/b, Vector4{x: a.x/b.x, y: a.y/b.y, z: a.z/b.z, w: a.w/b.w});
+
+    assert_eq!(a+0.2, Vector4{x: a.x+0.2, y: a.y+0.2, z: a.z+0.2, w: a.w+0.2})
 }
