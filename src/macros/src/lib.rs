@@ -48,3 +48,5 @@ pub fn vectops_derive(input: TokenStream) -> TokenStream {
     let input = syn::parse(input).unwrap();
     impl_vectops(&input)
 }
+
+//TODO: #[proc_macro_derive(Uniform)]
