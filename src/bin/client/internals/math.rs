@@ -1,4 +1,5 @@
 use std::ops::{Add, Sub, Div, Mul};
+use macros::VectOps;
 
 #[macro_export]
 macro_rules! vec3 {
@@ -13,6 +14,7 @@ macro_rules! vec4 {
     };
 }
 
+#[derive(VectOps, Clone, Copy)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
@@ -33,47 +35,8 @@ impl Vector3 {
 impl From<Vector3> for Vector4 {
     fn from(v: Vector3) -> Vector4 { vec4!(v.x, v.y, v.z, 0.0) }
 }
-impl Add for Vector3 {
-    type Output = Self;
-    fn add(self, other: Self) -> Self {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        }
-    }
-}
-impl Sub for Vector3 {
-    type Output = Self;
-    fn sub(self, other: Self) -> Self {
-        Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
-        }
-    }
-}
-impl Div for Vector3 {
-    type Output = Self;
-    fn div(self, other: Self) -> Self {
-        Self {
-            x: self.x / other.x,
-            y: self.y / other.y,
-            z: self.z / other.z,
-        }
-    }
-}
-impl Mul for Vector3 {
-    type Output = Self;
-    fn mul(self, other: Self) -> Self {
-        Self {
-            x: self.x * other.x,
-            y: self.y * other.y,
-            z: self.z * other.z,
-        }
-    }
-}
 
+#[derive(VectOps, Clone, Copy)]
 pub struct Vector4 {
     pub x: f32,
     pub y: f32,

@@ -14,3 +14,4 @@ name = "server"
 gl = "0.14.0"
 glfw = "0.61.0"
 image = "0.25.9"
+macros = { path = "src/macros"}
