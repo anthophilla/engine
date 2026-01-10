@@ -322,8 +322,8 @@ impl Renderer {
         
         Self::set_viewport(WINDOW_SIZE_X.try_into().unwrap(), WINDOW_SIZE_Y.try_into().unwrap());
         
-        let vert_shader1 = Shader::from_file("src/bin/client/shaders/shader.vert", gl::VERTEX_SHADER).unwrap();
-        let frag_shader1 = Shader::from_file("src/bin/client/shaders/shader.frag", gl::FRAGMENT_SHADER).unwrap();
+        let vert_shader1 = Shader::from_file("src/shaders/shader.vert", gl::VERTEX_SHADER).unwrap();
+        let frag_shader1 = Shader::from_file("src/shaders/shader.frag", gl::FRAGMENT_SHADER).unwrap();
         let mut shader_program= vec![
             ShaderProgram::create(vert_shader1, frag_shader1).unwrap()
         ];
@@ -332,8 +332,8 @@ impl Renderer {
         shader_program[0].add_uniform(UniformType::I1, "texture2\0").unwrap();
 
         let textures = HashMap::from([
-            ("container", Texture::from_file("src/bin/client/textures/container.jpg").unwrap()),
-            ("awesomeface", Texture::from_file("src/bin/client/textures/awesomeface.png").unwrap())
+            ("container", Texture::from_file("src/textures/container.jpg").unwrap()),
+            ("awesomeface", Texture::from_file("src/textures/awesomeface.png").unwrap())
         ]);
         Self::set_texture_params();
 
