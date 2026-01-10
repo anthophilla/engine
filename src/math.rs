@@ -14,6 +14,8 @@ macro_rules! vec4 {
     };
 }
 
+pub type Color = Vector4;
+
 #[derive(VectOps, Clone, Copy)]
 pub struct Vector3 {
     pub x: f32,

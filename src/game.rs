@@ -1,5 +1,5 @@
 use crate::vec3;
-use crate::internals::{
+use crate::{
     math::{Vector3, Triangle},
     renderer::{Renderer},
     Error,
