@@ -14,7 +14,8 @@ macro_rules! vector {
 pub type Vector3 = Vector<3>;
 pub type Vector4 = Vector<4>;
 
-pub struct Vector<const N: usize>([f32; N]);
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub struct Vector<const N: usize>(pub [f32; N]);
 impl<const N: usize> Vector<N> {
     pub const fn new(v: [f32; N]) -> Self { Self(v) }
     pub const fn as_array(&self) -> [f32; N] { self.0 }
@@ -62,7 +63,9 @@ impl<const N: usize> std::ops::Div for Vector<N> {
         Self(std::array::from_fn(|i| self.0[i] / other.0[i]))
     }
 }
-// pub struct Matrix<const X: usize, const Y: usize>([[f32; X]; Y]);
-// impl<const X: usize, const Y: usize> Matrix<X, Y> {
-//     fn from_arrays() -> Self
+
+// impl Vector4 {
+//     fn scale(&self, x: f32, y: f32, z: f32, w: f32) -> Self {
+
+//     }
 // }
