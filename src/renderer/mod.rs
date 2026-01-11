@@ -103,7 +103,7 @@ impl Renderer {
             self.ebo[i].buffer_elements(vec![[0, 1, 2]], gl::STATIC_DRAW);
         }
 
-        self.clear_color(crate::BACKGROUND_COLOR.as_tuple());
+        self.clear_color(crate::BACKGROUND_COLOR.as_array());
         self.clear();
 
         self.shader_program[0].use_program();
@@ -128,8 +128,8 @@ impl Renderer {
         return Ok(()) //TODO: return deltatime
     }
 
-    fn clear_color(&self, bg_color: (f32, f32, f32, f32)) {
-        unsafe { gl::ClearColor(bg_color.0, bg_color.1, bg_color.2, bg_color.3); }
+    fn clear_color(&self, bg_color: [f32; 4]) {
+        unsafe { gl::ClearColor(bg_color[0], bg_color[1], bg_color[2], bg_color[3]); }
     }
     fn clear(&self) {
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT); }
