@@ -17,4 +17,4 @@ pub enum Error{
 pub static GAME_NAME: &str = "enigne";
 pub const WINDOW_SIZE_X: u32 = 300;
 pub const WINDOW_SIZE_Y: u32 = 300;
-pub static BACKGROUND_COLOR: Color = Color::new(0.5, 0.3, 0.3, 1.0);
+pub static BACKGROUND_COLOR: Color = Color::new([0.5,0.3, 0.3, 1.0]);

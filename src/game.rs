@@ -1,6 +1,6 @@
 use crate::vector;
 use crate::{
-    math::{Vector3, Triangle},
+    math::{Vector, Triangle},
     renderer::{Renderer},
     Error,
 };
@@ -31,7 +31,7 @@ const TEXTURE_COORDS: [[f32; 2]; 6] = [
 ];
 
 struct Player {
-    position: Vector3,
+    position: Vector<3>,
 }
 impl Player {
     fn new() -> Self {

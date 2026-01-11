@@ -1,2 +1,2 @@
-use crate::math::Vector4;
-pub type Color = Vector4;
+use crate::math::Vector;
+pub type Color = Vector<4>;
