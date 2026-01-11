@@ -1,4 +1,4 @@
-use crate::vec3;
+use crate::vector;
 use crate::{
     math::{Vector3, Triangle},
     renderer::{Renderer},
@@ -10,14 +10,14 @@ use glfw::{Action, Context, GlfwReceiver, Key, WindowEvent, fail_on_errors};
 use crate::{GAME_NAME, WINDOW_SIZE_X, WINDOW_SIZE_Y};
 
 const TEST_TRIANGLE1: Triangle  = Triangle::new(
-    vec3!(0.5, 0.5, 0.0),
-    vec3!(0.5, -0.5, 0.0),
-    vec3!(-0.5, 0.5, 0.0)
+    vector!(0.5, 0.5, 0.0),
+    vector!(0.5, -0.5, 0.0),
+    vector!(-0.5, 0.5, 0.0)
 );
 const TEST_TRIANGLE2: Triangle  = Triangle::new(
-    vec3!(0.5, -0.5, 0.0),
-    vec3!(-0.5, -0.5, 0.0),
-    vec3!(-0.5, 0.5, 0.0)
+    vector!(0.5, -0.5, 0.0),
+    vector!(-0.5, -0.5, 0.0),
+    vector!(-0.5, 0.5, 0.0)
 );
 
 const TEXTURE_COORDS: [[f32; 2]; 6] = [
@@ -36,7 +36,7 @@ struct Player {
 impl Player {
     fn new() -> Self {
         Self{
-            position: vec3!(0.0, 0.0, 0.0)
+            position: vector!(0.0, 0.0, 0.0)
         }
     }
 }
