@@ -6,10 +6,13 @@
 
 use crate::math::Vector;
 
+pub type Matrix3x3 = Matrix<3, 3>;
+pub type Matrix4x4 = Matrix<4, 4>;
+
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct Matrix<const X: usize, const Y: usize>([[f32; X]; Y]);
 impl<const X: usize, const Y: usize> Matrix<X, Y> {
-    pub fn from_arrays(arr: [[f32; X]; Y]) -> Self { Self(arr) }
+    pub const fn from_arrays(arr: [[f32; X]; Y]) -> Self { Self(arr) }
 }
 impl<const X: usize, const Y: usize> std::ops::Add for Matrix<X, Y> {
     type Output = Self;
@@ -51,22 +54,42 @@ impl<const X: usize, const Y: usize> std::ops::Mul<Matrix<Y, X>> for Matrix<X, Y
         ))
     }
 }
-impl<const X: usize, const Y: usize> std::ops::Mul<Vector<X>> for Matrix<X, Y> {
-    type Output = Vector<Y>;
-    fn mul(self, other: Vector<X>) -> Vector<Y> {
+impl<const X: usize> std::ops::Mul<Vector<X>> for Matrix<X, X> {
+    type Output = Vector<X>;
+    fn mul(self, other: Vector<X>) -> Vector<X> {
         Vector::new(
             std::array::from_fn(|y| {
                 (0..X)
-                    .map(|x| self.0[y][x] * other.0[x])
+                    .map(|x| {self.0[y][x] * other.0[x]})
                     .sum()
             })
         )
     }
 }
 
+impl Matrix4x4 {
+    pub const fn identity() -> Self {
+        Self::from_arrays([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+    }
+}
+impl Matrix3x3 {
+    pub const fn identity() -> Self {
+        Self::from_arrays([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ])
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use crate::math::{Matrix, Vector3};
+    use crate::math::{Matrix, Vector3, Vector4, matrix::Matrix4x4};
 
     #[test]
     fn matrix_ops() {
@@ -127,10 +150,11 @@ mod test {
     #[test]
     fn mat_vec_mul() {
         let a = Matrix::from_arrays([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
+            [1.0, 2.0, 3.0],
+            [4.0, 5.0, 6.0],
+            [7.0, 8.0, 9.0],
         ]);
-        assert_eq!(a*Vector3::new([1.0, 2.0, 3.0]), Vector3::new([1.0, 2.0, 3.0]))
+        assert_eq!(Matrix4x4::identity()*Vector4::new([1.0, 2.0, 3.0, 4.0]), Vector4::new([1.0, 2.0, 3.0, 4.0]));
+        assert_eq!(a*Vector3::new([1.0, 2.0, 3.0]), Vector3::new([14.0, 32.0, 50.0]))
     }
 }
