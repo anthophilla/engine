@@ -2,7 +2,7 @@ use crate::math::{Matrix, matrix::{Matrix3x3, Matrix4x4}};
 
 #[macro_export]
 macro_rules! vector {
-    ($x:expr, &y:expr) => {
+    ($x:expr, $y:expr) => {
         Vector::<2>::new([$x, $y])
     };
     ($x:expr, $y:expr, $z:expr) => {
@@ -108,6 +108,9 @@ impl Quaternion {
             y: v.0[1] * (a/2.0).sin(),
             z: v.0[2] * (a/2.0).sin(),
         }
+    }
+    pub fn from_angle_vect(angle: f32, v: Vector3) -> Self {
+        Self::from(vector!(angle, v.0[0], v.0[1], v.0[2]))
     }
 
     

@@ -47,6 +47,7 @@ impl VertexBufferObject {
     }
 }
 
+#[derive(PartialEq)]
 pub struct ElementBufferObject(gl::types::GLuint);
 impl ElementBufferObject {
     pub fn new() -> Result<Self, Error> {

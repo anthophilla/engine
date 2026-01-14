@@ -1,6 +1,6 @@
 use crate::vector;
 use crate::{
-    math::{Vector, Triangle},
+    math::Vector,
     renderer::{Renderer},
     Error,
 };
@@ -8,17 +8,6 @@ use crate::{
 use glfw::{Action, Context, GlfwReceiver, Key, WindowEvent, fail_on_errors};
 
 use crate::{GAME_NAME, WINDOW_SIZE_X, WINDOW_SIZE_Y};
-
-const TEST_TRIANGLE1: Triangle  = Triangle::new(
-    vector!(0.5, 0.5, 0.0),
-    vector!(0.5, -0.5, 0.0),
-    vector!(-0.5, 0.5, 0.0)
-);
-const TEST_TRIANGLE2: Triangle  = Triangle::new(
-    vector!(0.5, -0.5, 0.0),
-    vector!(-0.5, -0.5, 0.0),
-    vector!(-0.5, 0.5, 0.0)
-);
 
 const TEXTURE_COORDS: [[f32; 2]; 6] = [
     [1.0, 1.0],
@@ -79,7 +68,7 @@ impl Game {
         while !self.window.should_close() {
             
             self.process_events();
-            self.renderer.render(vec![TEST_TRIANGLE1, TEST_TRIANGLE2], TEXTURE_COORDS)?;
+            self.renderer.render()?;
             self.window.swap_buffers();
         }
         
