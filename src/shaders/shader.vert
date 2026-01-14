@@ -7,10 +7,11 @@ out vec4 vertexColor;
 out vec2 texCoord;
 
 uniform vec3 offset;
+uniform mat4 transform;
 
 void main() {
     vec3 pos = aPos.xyz + offset.xyz;
-    gl_Position = vec4(pos, 1.0);
+    gl_Position = transform * vec4(pos, 1.0);
     vertexColor = aColor;
     texCoord = aTexCoord;
 }

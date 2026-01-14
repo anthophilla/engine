@@ -13,6 +13,15 @@ pub type Matrix4x4 = Matrix<4, 4>;
 pub struct Matrix<const X: usize, const Y: usize>([[f32; X]; Y]);
 impl<const X: usize, const Y: usize> Matrix<X, Y> {
     pub const fn from_arrays(arr: [[f32; X]; Y]) -> Self { Self(arr) }
+    pub fn column_major(&self) -> [[f32; Y]; X] {
+        let mut new = [[0.0; Y]; X];
+        for y in 0..Y {
+            for x in 0..X {
+                new[x][y] = self.0[y][x];
+            }
+        };
+        new
+    }
 }
 impl<const X: usize, const Y: usize> std::ops::Add for Matrix<X, Y> {
     type Output = Self;
@@ -68,23 +77,36 @@ impl<const X: usize> std::ops::Mul<Vector<X>> for Matrix<X, X> {
 }
 
 impl Matrix4x4 {
-    pub const fn identity() -> Self {
-        Self::from_arrays([
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ])
+    pub const IDENTITY: Self = Self::from_arrays([
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]);
+    pub fn as_gl_slice(&self) -> [f32; 16] {
+        let m = self.column_major();
+        return [
+            m[0][0], m[0][1], m[0][2], m[0][3],
+            m[1][0], m[1][1], m[1][2], m[1][3],
+            m[2][0], m[2][1], m[2][2], m[2][3],
+            m[3][0], m[3][1], m[3][2], m[3][2],
+        ]
     }
 }
 impl Matrix3x3 {
-    pub const fn identity() -> Self {
-        Self::from_arrays([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ])
-    }
+    pub const IDENTITY: Self = Self::from_arrays([
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ]);
+    // pub fn as_gl_slice(&self) -> [f32; 9] {
+    //     let m = self.column_major();
+    //     return [
+    //         m[0][0], m[0][1], m[0][2],
+    //         m[1][0], m[1][1], m[1][2],
+    //         m[2][0], m[2][1], m[2][2],
+    //     ]
+    // }
 }
 
 #[cfg(test)]
@@ -154,7 +176,17 @@ mod test {
             [4.0, 5.0, 6.0],
             [7.0, 8.0, 9.0],
         ]);
-        assert_eq!(Matrix4x4::identity()*Vector4::new([1.0, 2.0, 3.0, 4.0]), Vector4::new([1.0, 2.0, 3.0, 4.0]));
+        assert_eq!(Matrix4x4::IDENTITY*Vector4::new([1.0, 2.0, 3.0, 4.0]), Vector4::new([1.0, 2.0, 3.0, 4.0]));
         assert_eq!(a*Vector3::new([1.0, 2.0, 3.0]), Vector3::new([14.0, 32.0, 50.0]))
+    }
+    #[test]
+    fn column_major() {
+        let b = Matrix::from_arrays([
+            [8.0, 7.0, 6.0],
+            [5.0, 4.0, 3.0],
+            [2.0, 1.0, 0.0],
+        ]);
+        dbg!(&b);
+        dbg!(&b.column_major());
     }
 }

@@ -4,15 +4,18 @@ mod textures;
 mod uniforms;
 
 use std::collections::HashMap;
+use std::f32::consts::PI;
 use std::mem::offset_of;
 
 use buffers::{VertexArrayObject, VertexBufferObject, ElementBufferObject};
 use shaders::{Shader, ShaderProgram};
 use textures::Texture;
-use uniforms::{UniformType, AnyUniform};
+use uniforms::Uniform;
 
-use crate::Error;
-use crate::math::Triangle;
+use crate::math::matrix::Matrix4x4;
+use crate::{Error, vector};
+use crate::math::{Triangle, Vector, Vector4};
+use crate::math::vectors::Quaternion;
 use crate::{WINDOW_SIZE_X, WINDOW_SIZE_Y};
 
 #[repr(C)]
@@ -32,6 +35,7 @@ pub struct Renderer {
     vao: [VertexArrayObject; 2],
     ebo: [ElementBufferObject; 2],
     shader_program: Vec<ShaderProgram>,
+    uniforms: Vec<Uniform>,
     textures: HashMap<&'static str, Texture>,
     wireframe: bool
 }
@@ -51,8 +55,11 @@ impl Renderer {
             ShaderProgram::create(vert_shader1, frag_shader1).unwrap()
         ];
 
-        shader_program[0].add_uniform(UniformType::I1, "texture1\0").unwrap();
-        shader_program[0].add_uniform(UniformType::I1, "texture2\0").unwrap();
+        let uniforms = vec![
+            Uniform::from_name("texture1\0", &shader_program[0]).unwrap(),
+            Uniform::from_name("texture2\0", &shader_program[0]).unwrap(),
+            Uniform::from_name("transform\0", &shader_program[0]).unwrap(),
+        ];
 
         let textures = HashMap::from([
             ("container", Texture::from_file("src/textures/container.jpg").unwrap()),
@@ -65,6 +72,7 @@ impl Renderer {
             vao,
             ebo,
             shader_program,
+            uniforms,
             textures,
             wireframe: true,
         };
@@ -108,14 +116,14 @@ impl Renderer {
 
         self.shader_program[0].use_program();
 
-        unsafe { gl::Uniform1i(gl::GetUniformLocation(self.shader_program[0].program, "texture1".as_ptr().cast()), 0); }
         self.textures.get("container").unwrap().bind(0);
         self.textures.get("awesomeface").unwrap().bind(1);
 
-        match (self.shader_program[0].get_uniform("texture1\0").unwrap(), self.shader_program[0].get_uniform("texture2\0").unwrap()) {
-            (AnyUniform::I1(x), AnyUniform::I1(y)) => {x.set(0); y.set(1)},
-            _ => panic!("how?")
-        }; // wtf :( this shit gotta be extra slow
+        self.uniforms[0].seti1(0);
+        self.uniforms[1].seti1(1);
+
+        let rot = Quaternion::from(vector!(PI/2.0, 0.0, 0.0, 1.0)).to_matrix4x4();
+        self.uniforms[2].setmat4(rot);
 
         self.vao[0].bind();
         self.ebo[0].bind();

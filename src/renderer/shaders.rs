@@ -1,6 +1,6 @@
 use crate::Error;
 use std::collections::HashMap;
-use crate::renderer::uniforms::{AnyUniform, UniformType};
+use crate::renderer::uniforms::Uniform;
 
 pub struct Shader(u32);
 impl Shader {
@@ -42,7 +42,6 @@ pub struct ShaderProgram {
     pub program: u32,
     vertex_shader: Shader,
     frag_shader:   Shader,
-    uniforms: HashMap<&'static str, AnyUniform>
 }
 impl ShaderProgram {
     pub fn create(vertex_shader: Shader, frag_shader: Shader) -> Result<Self, Error> {
@@ -67,20 +66,10 @@ impl ShaderProgram {
 
             gl::DeleteShader(vertex_shader.0.clone());
             gl::DeleteShader(frag_shader.0.clone());
-            return Ok(ShaderProgram { program, vertex_shader, frag_shader, uniforms: HashMap::new() })
+            return Ok(ShaderProgram { program, vertex_shader, frag_shader })
         }
     }
     pub fn use_program(&self) {
         unsafe { gl::UseProgram(self.program); }
-    }
-    pub fn add_uniform(&mut self, t: UniformType, name: &'static str) -> Result<AnyUniform, Error> {
-        self.uniforms.insert(name, AnyUniform::from_name(t, name, &self).unwrap());
-        Ok(self.uniforms.get(name).unwrap().clone())
-    }
-    pub fn get_uniform(&self, name: &'static str) -> Result<AnyUniform, Error> { 
-        match self.uniforms.get(name) {
-            Some(u) => Ok(u.clone()),
-            None => Err(Error::UniformError("cannot find uniform in hashmap"))
-        } 
     }
 }
