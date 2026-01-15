@@ -9,16 +9,6 @@ use glfw::{Action, Context, GlfwReceiver, Key, WindowEvent, fail_on_errors};
 
 use crate::{GAME_NAME, WINDOW_SIZE_X, WINDOW_SIZE_Y};
 
-const TEXTURE_COORDS: [[f32; 2]; 6] = [
-    [1.0, 1.0],
-    [1.0, 0.0],
-    [0.0, 1.0],
-
-    [1.0, 0.0],
-    [0.0, 0.0],
-    [0.0, 1.0],
-];
-
 struct Player {
     position: Vector<3>,
 }
