@@ -5,21 +5,25 @@ mod uniforms;
 mod objects;
 
 use std::collections::HashMap;
-use std::f32::consts::PI;
-use std::mem::offset_of;
 
-use buffers::{VertexArrayObject, VertexBufferObject, ElementBufferObject};
 use shaders::{Shader, ShaderProgram};
 use textures::Texture;
 use uniforms::Uniform;
-use objects::{Object3D, Triangle};
 
-use crate::math::matrix::Matrix4x4;
-use crate::renderer::objects::Rectangle;
-use crate::{Error, math, vector};
-use crate::math::{Color, Vector, Vector3, Vector4};
-use crate::math::vectors::Quaternion;
-use crate::{WINDOW_SIZE_X, WINDOW_SIZE_Y};
+use crate::{Error,
+    WINDOW_SIZE_X, WINDOW_SIZE_Y,
+    math::{
+        perspective,
+        Color,
+        Vector,
+        Vector3,
+        Vector4,
+        matrix::Matrix4x4,
+        vectors::Quaternion
+    },
+    renderer::objects::Rectangle,
+    vector
+};
 
 #[repr(C)]
 struct Vertex {
@@ -61,6 +65,7 @@ impl Renderer {
             Uniform::from_name("model\0", &shader_program[0]).unwrap(),
             Uniform::from_name("view\0", &shader_program[0]).unwrap(),
             Uniform::from_name("perspective\0", &shader_program[0]).unwrap(),
+            Uniform::from_name("transform\0", &shader_program[0]).unwrap(),
         ];
 
         let textures = HashMap::from([
@@ -78,8 +83,7 @@ impl Renderer {
                     Texture::from_file("src/textures/container.jpg").unwrap(),
                     Texture::from_file("src/textures/awesomeface.png").unwrap()
                 ],
-                gl::STATIC_DRAW,
-                Uniform::from_name("offset\0", &shader_program[0]).unwrap()
+                gl::STATIC_DRAW
             )
         ];
 
@@ -104,7 +108,7 @@ impl Renderer {
         
         let rot = Quaternion::from_angle_vect((time as f32)*10.0, vector!(0.0, 0.0, 1.0)).to_matrix4x4();
 
-        let perspective = math::perspective(45.0, 1.0, 0.1, 10.0);
+        let perspective = perspective(45.0, 1.0, 0.1, 10.0);
         let view = Matrix4x4::translation_mat(vector!(0.0, 0.0, -3.0));
         
         self.uniforms[2].setmat4(rot); // model
@@ -112,8 +116,8 @@ impl Renderer {
         self.uniforms[4].setmat4(perspective);//perspective
 
         for rect in &mut self.rectangles {
-            rect.move_pos(vector!(0.0, 0.0, -0.005));
-            rect.draw();
+            rect.translate(vector!(0.0, 0.0, -0.01));
+            rect.mesh.draw(&self.uniforms[5]);
         }
 
         return Ok(())

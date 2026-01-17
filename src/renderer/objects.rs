@@ -1,42 +1,30 @@
 use std::mem::offset_of;
 
-
 use crate::{
     math::{Color, Vector, Vector3, vectors::Quaternion},
     renderer::{Vertex, buffers::{ElementBufferObject, VertexArrayObject, VertexBufferObject}, textures::{self, Texture}, uniforms::Uniform},
     vector
 };
 
-pub trait Object3D {
-    fn draw(&self);
-}
+pub struct StaticMesh {
+    textures: Vec<Texture>,
+    tris_count: i32,
 
-pub struct Triangle{
-    world_pos: Vector3,
+    world_position: Vector3,
 
     vao: VertexArrayObject,
     vbo: VertexBufferObject,
     ebo: ElementBufferObject,
 }
-impl Triangle {
-    pub fn basic(position: Vector3, color: Vector<4>, usage: gl::types::GLuint, ebo: Option<ElementBufferObject>) -> Self {
-        let verts = [
-            Vertex::from_vectors(vector!(0.5, 0.5, 0.0), color, vector!(1.0, 1.0)),
-            Vertex::from_vectors(vector!(0.5, -0.5, 0.0), color, vector!(1.0, -1.0)),
-            Vertex::from_vectors(vector!(-0.5, 0.5, 0.0), color, vector!(-1.0, 1.0))
-        ];
-        Self::new(position, verts, usage, ebo)
-    }
-    pub fn new(position: Vector3, verts: [Vertex; 3], usage: u32, custom_ebo: Option<ElementBufferObject>) -> Self {
-        let indices = [0, 1, 2];
-
+impl StaticMesh {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<[i32; 3]>, world_position: Vector3, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
         let vao = VertexArrayObject::new().unwrap();
         let vbo = VertexBufferObject::new().unwrap();
         
         vao.bind();
         vbo.bind();
-        vbo.buffer(&verts, usage);
-        
+        vbo.buffer(&vertices, usage);
+
         //implement this as a function
         unsafe {
             let stride = size_of::<Vertex>() as i32;
@@ -51,44 +39,63 @@ impl Triangle {
             gl::EnableVertexAttribArray(2);
         }
 
-        let ebo = match custom_ebo {
-            Some(obj) => {obj},
-            None => {
-                let obj = ElementBufferObject::new().unwrap();
-                obj.bind();
-                obj.buffer_elements(vec![indices], usage);
-                obj
-            }
-        };
+        let tris_count = indices.len().clone() as i32;
+
+        let ebo = ElementBufferObject::new().unwrap();
+        ebo.bind();
+        ebo.buffer_elements(indices, usage);
 
         Self {
-            world_pos: position,
-
+            textures,
+            world_position,
+            tris_count,
             vao, vbo, ebo
         }
     }
-}
-impl Object3D for Triangle {
-    fn draw(&self) {
+
+    pub fn draw(&self, transform_uniform: &Uniform) {
+        for (i, text) in self.textures.iter().enumerate() { text.bind(i as u32); }
+        transform_uniform.setf3(self.world_position.0[0], self.world_position.0[1], self.world_position.0[2]);
         self.vao.bind();
         self.ebo.bind();
-        unsafe { gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, std::ptr::null()); }
+        unsafe { gl::DrawElements(gl::TRIANGLES, self.tris_count*3, gl::UNSIGNED_INT, std::ptr::null()); }
+    }
+    pub fn translate(&mut self, pos: Vector3) {
+        self.world_position = pos;
+    }
+}
+
+pub struct Triangle{
+    world_pos: Vector3,
+    pub mesh: StaticMesh,
+}
+impl Triangle {
+    pub fn new((x, y): (f32, f32), position: Vector3, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
+        let indices = [0, 1, 2];
+
+        let vertices = vec![
+            Vertex::from_vectors(vector!(-x/2.0, -y/2.0, 0.0), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!(0.0, y/2.0, 0.0), color, vector!(1.0, -1.0)),
+            Vertex::from_vectors(vector!(x/2.0, -y/2.0, 0.0), color, vector!(-1.0, 1.0))
+        ];
+        let indices = vec![[0, 1, 2]];
+
+        let mesh = StaticMesh::new(vertices, indices, position, textures, usage);
+
+        Self { 
+            world_pos: position,
+            mesh
+        }
     }
 }
 
 pub struct Rectangle {
     world_pos: Vector3,
-    offset_uniform: Uniform,
-    textures: Vec<Texture>,
-    verts: [Vertex; 4],
-
-    vao: VertexArrayObject,
-    vbo: VertexBufferObject,
-    ebo: ElementBufferObject,
+    pub mesh: StaticMesh,
 }
 impl Rectangle {
-    pub fn new((x, y): (f32, f32), position: Vector3, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint, offset_uniform: Uniform) -> Self {
-        let verts = [
+    pub fn new((x, y): (f32, f32), position: Vector3, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
+        let vertices = vec![
             Vertex::from_vectors(vector!(x, y, 0.0), color, vector!(1.0, 1.0)),
             Vertex::from_vectors(vector!(-x, y, 0.0), color, vector!(0.0, 1.0)),
             Vertex::from_vectors(vector!(x, -y, 0.0), color, vector!(1.0, 0.0)),
@@ -96,49 +103,18 @@ impl Rectangle {
         ];
         let indices = vec![[1, 0, 2], [1, 2, 3]];
 
-        let vao = VertexArrayObject::new().unwrap();
-        let vbo = VertexBufferObject::new().unwrap();
-        
-        vao.bind();
-        vbo.bind();
-        vbo.buffer(&verts, usage);
-
-        //implement this as a function
-        unsafe {
-            let stride = size_of::<Vertex>() as i32;
-            //vertices
-            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, position) as *const _);
-            gl::EnableVertexAttribArray(0);
-            //color
-            gl::VertexAttribPointer(1, 4, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, color) as *const _);
-            gl::EnableVertexAttribArray(1);
-            //texture
-            gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, tex_coord) as *const _);
-            gl::EnableVertexAttribArray(2);
-        }
-
-        let ebo = ElementBufferObject::new().unwrap();
-        ebo.bind();
-        ebo.buffer_elements(indices, usage);
+        let mesh = StaticMesh::new(vertices, indices, position, textures, usage);
 
         Self { 
             world_pos: position,
-            verts,
-            textures,
-            offset_uniform,
-            vao,vbo,ebo
+            mesh
         }
     }
-    pub fn move_pos(&mut self, offset: Vector3) {
-        self.world_pos = self.world_pos+offset;
+    pub fn update_mesh(&mut self) {
+        self.mesh.translate(self.world_pos);
     }
-}
-impl Object3D for Rectangle {
-    fn draw(&self) {
-        for (i, text) in self.textures.iter().enumerate() { text.bind(i as u32); }
-        self.offset_uniform.setf3(self.world_pos.0[0], self.world_pos.0[1], self.world_pos.0[2]);
-        self.vao.bind();
-        self.ebo.bind();
-        unsafe { gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null()); }
+    pub fn translate(&mut self, offset: Vector3) {
+        self.world_pos = self.world_pos+offset;
+        self.update_mesh();
     }
 }
