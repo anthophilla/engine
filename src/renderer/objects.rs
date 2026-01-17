@@ -11,13 +11,14 @@ pub struct StaticMesh {
     tris_count: i32,
 
     world_position: Vector3,
+    orientation: Quaternion,
 
     vao: VertexArrayObject,
     vbo: VertexBufferObject,
     ebo: ElementBufferObject,
 }
 impl StaticMesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<[i32; 3]>, world_position: Vector3, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<[i32; 3]>, world_position: Vector3, orientation: Quaternion, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
         let vao = VertexArrayObject::new().unwrap();
         let vbo = VertexBufferObject::new().unwrap();
         
@@ -48,14 +49,16 @@ impl StaticMesh {
         Self {
             textures,
             world_position,
+            orientation,
             tris_count,
             vao, vbo, ebo
         }
     }
 
-    pub fn draw(&self, transform_uniform: &Uniform) {
+    pub fn draw(&self, transform_uniform: &Uniform, model_uniform: &Uniform) {
         for (i, text) in self.textures.iter().enumerate() { text.bind(i as u32); }
         transform_uniform.setf3(self.world_position.0[0], self.world_position.0[1], self.world_position.0[2]);
+        model_uniform.setmat4(self.orientation.to_matrix4x4());
         self.vao.bind();
         self.ebo.bind();
         unsafe { gl::DrawElements(gl::TRIANGLES, self.tris_count*3, gl::UNSIGNED_INT, std::ptr::null()); }
@@ -63,14 +66,18 @@ impl StaticMesh {
     pub fn translate(&mut self, pos: Vector3) {
         self.world_position = pos;
     }
+    pub fn set_rotation(&mut self, rot: Quaternion) {
+        self.orientation = rot;
+    }
 }
 
 pub struct Triangle{
     world_pos: Vector3,
+    orientation: Quaternion,
     pub mesh: StaticMesh,
 }
 impl Triangle {
-    pub fn new((x, y): (f32, f32), position: Vector3, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
+    pub fn new((x, y): (f32, f32), position: Vector3, orientation: Quaternion, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
         let indices = [0, 1, 2];
 
         let vertices = vec![
@@ -80,21 +87,31 @@ impl Triangle {
         ];
         let indices = vec![[0, 1, 2]];
 
-        let mesh = StaticMesh::new(vertices, indices, position, textures, usage);
+        let mesh = StaticMesh::new(vertices, indices, position, orientation, textures, usage);
 
         Self { 
             world_pos: position,
+            orientation,
             mesh
         }
+    }
+    pub fn update_mesh(&mut self) {
+        self.mesh.translate(self.world_pos);
+        self.mesh.set_rotation(self.orientation);
+    }
+    pub fn translate(&mut self, offset: Vector3) {
+        self.world_pos = self.world_pos+offset;
+        self.update_mesh();
     }
 }
 
 pub struct Rectangle {
     world_pos: Vector3,
+    orientation: Quaternion,
     pub mesh: StaticMesh,
 }
 impl Rectangle {
-    pub fn new((x, y): (f32, f32), position: Vector3, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
+    pub fn new((x, y): (f32, f32), position: Vector3, orientation: Quaternion, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
         let vertices = vec![
             Vertex::from_vectors(vector!(x, y, 0.0), color, vector!(1.0, 1.0)),
             Vertex::from_vectors(vector!(-x, y, 0.0), color, vector!(0.0, 1.0)),
@@ -103,18 +120,25 @@ impl Rectangle {
         ];
         let indices = vec![[1, 0, 2], [1, 2, 3]];
 
-        let mesh = StaticMesh::new(vertices, indices, position, textures, usage);
+        let mesh = StaticMesh::new(vertices, indices, position, orientation, textures, usage);
 
         Self { 
             world_pos: position,
+            orientation,
             mesh
         }
     }
     pub fn update_mesh(&mut self) {
         self.mesh.translate(self.world_pos);
+        self.mesh.set_rotation(self.orientation);
     }
     pub fn translate(&mut self, offset: Vector3) {
         self.world_pos = self.world_pos+offset;
         self.update_mesh();
+    }
+    pub fn rotate(&mut self, rot: Quaternion) {
+        todo!("broken!!!");
+        // self.orientation = self.orientation*rot;
+        // self.update_mesh();
     }
 }

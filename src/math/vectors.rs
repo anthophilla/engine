@@ -89,7 +89,7 @@ impl Vector4 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Quaternion {
     pub w: f32,
     pub x: f32,
@@ -146,12 +146,30 @@ impl Quaternion {
             ]
         ])
     }
+    pub const IDENTITY: Self = Self{w: 1.0, x: 0.0, y: 0.0, z: 0.0};
+
+}
+//TODO write unit test for quat operations
+impl std::ops::Mul for Quaternion {
+    type Output = Self;
+    fn mul(self, other: Self) -> Self::Output {
+        Self {
+            w: self.w*other.w - self.x*other.x - self.y*other.y - self.z*other.z,
+            x: self.w*other.x + self.x*other.w + self.y*other.z - self.z*other.y,
+            y: self.w*other.y - self.x*other.z + self.y*other.w + self.z*other.x,
+            z: self.w*other.z + self.x*other.y - self.y*other.x + self.z*other.w,
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
     use std::f32::consts::PI;
-    use crate::math::{Vector4, Vector3, vectors::Quaternion};
+    use crate::math::{Vector4, Vector3, Vector, vectors::Quaternion};
+
+    fn approx_eq(a: f32, b: f32) -> bool {
+        (a - b).abs() < 1e-6
+    }
 
     #[test]
     fn rotate_vector() {
@@ -165,5 +183,25 @@ mod test {
         let v = Vector4::new([1.0, 0.0, 0.0, 1.0]);
         let w = Vector4::new([0.0, 1.0, 0.0, 1.0]);
         dbg!(v.rotate(q), w);
+    }
+
+    #[test]
+    fn quat_ident_mul() {
+        let q = Quaternion { w: 0.70710677, x: 0.0, y: 0.70710677, z: 0.0 };
+        let id = Quaternion::IDENTITY;
+        
+        let mul = q*id;
+        assert!(approx_eq(mul.w, q.w));
+        assert!(approx_eq(mul.x, q.x));
+        assert!(approx_eq(mul.y, q.y));
+        assert!(approx_eq(mul.z, q.z));
+    }
+        #[test]
+    fn quat_mul() {
+        let q = Quaternion { w: 0.70710677, x: 0.0, y: 0.70710677, z: 0.0 };
+        let id = Quaternion::from_angle_vect(90.0, vector!(0.0, 1.0, 0.0));
+        
+        let mul = q*id;
+        dbg!(mul);
     }
 }

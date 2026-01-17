@@ -78,6 +78,7 @@ impl Renderer {
             Rectangle::new(
                 (0.5, 0.5),
                 vector!(0.0, 0.0, 1.0),
+                Quaternion::from_angle_vect(0.0, vector!(0.0, 0.0, 0.0)),
                 vector!(1.0, 0.0, 0.0, 1.0),
                 vec![
                     Texture::from_file("src/textures/container.jpg").unwrap(),
@@ -106,18 +107,20 @@ impl Renderer {
         self.uniforms[0].seti1(0);
         self.uniforms[1].seti1(1);
         
-        let rot = Quaternion::from_angle_vect((time as f32)*10.0, vector!(0.0, 0.0, 1.0)).to_matrix4x4();
+        let rot = Quaternion::from_angle_vect((time as f32)*10.0, vector!(0.0, 0.0, 1.0));
 
         let perspective = perspective(45.0, 1.0, 0.1, 10.0);
         let view = Matrix4x4::translation_mat(vector!(0.0, 0.0, -3.0));
         
-        self.uniforms[2].setmat4(rot); // model
+        //self.uniforms[2].setmat4(rot); // model
         self.uniforms[3].setmat4(view);
         self.uniforms[4].setmat4(perspective);//perspective
 
         for rect in &mut self.rectangles {
             rect.translate(vector!(0.0, 0.0, -0.01));
-            rect.mesh.draw(&self.uniforms[5]);
+            rect.mesh.set_rotation(rot);
+            //rect.rotate(rot); //broken
+            rect.mesh.draw(&self.uniforms[5], &self.uniforms[2]);
         }
 
         return Ok(())
