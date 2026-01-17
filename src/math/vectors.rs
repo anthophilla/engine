@@ -109,8 +109,11 @@ impl Quaternion {
             z: v.0[2] * (a/2.0).sin(),
         }
     }
-    pub fn from_angle_vect(angle: f32, v: Vector3) -> Self {
+    pub fn from_radian_vect(angle: f32, v: Vector3) -> Self {
         Self::from(vector!(angle, v.0[0], v.0[1], v.0[2]))
+    }
+    pub fn from_angle_vect(angle: f32, v: Vector3) -> Self {
+        Self::from(vector!(angle.to_radians(), v.0[0], v.0[1], v.0[2]))
     }
 
     

@@ -7,11 +7,13 @@ out vec4 vertexColor;
 out vec2 texCoord;
 
 uniform vec3 offset;
-uniform mat4 transform;
+uniform mat4 perspective;
+uniform mat4 model;
+uniform mat4 view;
 
 void main() {
     vec3 pos = aPos.xyz + offset.xyz;
-    gl_Position = transform * vec4(pos, 1.0);
+    gl_Position = perspective * view * model * vec4(pos, 1.0);
     vertexColor = aColor;
     texCoord = aTexCoord;
 }

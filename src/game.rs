@@ -58,7 +58,7 @@ impl Game {
         while !self.window.should_close() {
             
             self.process_events();
-            self.renderer.render()?;
+            self.renderer.render(self.glfw.get_time())?;
             self.window.swap_buffers();
         }
         

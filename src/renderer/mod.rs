@@ -16,7 +16,7 @@ use objects::{Object3D, Triangle};
 
 use crate::math::matrix::Matrix4x4;
 use crate::renderer::objects::Rectangle;
-use crate::{Error, vector};
+use crate::{Error, math, vector};
 use crate::math::{Color, Vector, Vector3, Vector4};
 use crate::math::vectors::Quaternion;
 use crate::{WINDOW_SIZE_X, WINDOW_SIZE_Y};
@@ -46,7 +46,7 @@ pub struct Renderer {
 impl Renderer {
     pub fn init(window: &mut glfw::Window) -> Self {
         gl::load_with(|s| window.get_proc_address(s).unwrap() as *const _);
-                
+
         Self::set_viewport(WINDOW_SIZE_X.try_into().unwrap(), WINDOW_SIZE_Y.try_into().unwrap());
         
         let vert_shader1 = Shader::from_file("src/shaders/shader.vert", gl::VERTEX_SHADER).unwrap();
@@ -58,7 +58,9 @@ impl Renderer {
         let uniforms = vec![
             Uniform::from_name("texture1\0", &shader_program[0]).unwrap(),
             Uniform::from_name("texture2\0", &shader_program[0]).unwrap(),
-            Uniform::from_name("transform\0", &shader_program[0]).unwrap(),
+            Uniform::from_name("model\0", &shader_program[0]).unwrap(),
+            Uniform::from_name("view\0", &shader_program[0]).unwrap(),
+            Uniform::from_name("perspective\0", &shader_program[0]).unwrap(),
         ];
 
         let textures = HashMap::from([
@@ -70,13 +72,14 @@ impl Renderer {
         let rectangles: Vec<Rectangle> = vec![
             Rectangle::new(
                 (0.5, 0.5),
-                vector!(0.0, 0.0, 0.0),
+                vector!(0.0, 0.0, 1.0),
                 vector!(1.0, 0.0, 0.0, 1.0),
                 vec![
                     Texture::from_file("src/textures/container.jpg").unwrap(),
                     Texture::from_file("src/textures/awesomeface.png").unwrap()
                 ],
                 gl::STATIC_DRAW,
+                Uniform::from_name("offset\0", &shader_program[0]).unwrap()
             )
         ];
 
@@ -89,7 +92,7 @@ impl Renderer {
         };
     }
     
-    pub fn render(&mut self) -> Result<(), Error> {
+    pub fn render(&mut self, time: f64) -> Result<(), Error> {
         
         self.clear_color(crate::BACKGROUND_COLOR.as_array());
         self.clear();
@@ -99,12 +102,21 @@ impl Renderer {
         self.uniforms[0].seti1(0);
         self.uniforms[1].seti1(1);
         
-        //let rot = Quaternion::from_angle_vect(PI/4.0, vector!(0.0, 0.0, 1.0).normalize()).to_matrix4x4();
-        let rot = Matrix4x4::IDENTITY;
-        self.uniforms[2].setmat4(rot);
-        for rect in &self.rectangles { rect.draw(); }
+        let rot = Quaternion::from_angle_vect((time as f32)*10.0, vector!(0.0, 0.0, 1.0)).to_matrix4x4();
 
-        return Ok(()) //TODO: return deltatime
+        let perspective = math::perspective(45.0, 1.0, 0.1, 10.0);
+        let view = Matrix4x4::translation_mat(vector!(0.0, 0.0, -3.0));
+        
+        self.uniforms[2].setmat4(rot); // model
+        self.uniforms[3].setmat4(view);
+        self.uniforms[4].setmat4(perspective);//perspective
+
+        for rect in &mut self.rectangles {
+            rect.move_pos(vector!(0.0, 0.0, -0.005));
+            rect.draw();
+        }
+
+        return Ok(())
     }
 
     fn clear_color(&self, bg_color: [f32; 4]) {

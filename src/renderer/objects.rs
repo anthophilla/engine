@@ -3,7 +3,7 @@ use std::mem::offset_of;
 
 use crate::{
     math::{Color, Vector, Vector3, vectors::Quaternion},
-    renderer::{Vertex, buffers::{ElementBufferObject, VertexArrayObject, VertexBufferObject}, textures::{self, Texture}},
+    renderer::{Vertex, buffers::{ElementBufferObject, VertexArrayObject, VertexBufferObject}, textures::{self, Texture}, uniforms::Uniform},
     vector
 };
 
@@ -78,6 +78,7 @@ impl Object3D for Triangle {
 
 pub struct Rectangle {
     world_pos: Vector3,
+    offset_uniform: Uniform,
     textures: Vec<Texture>,
     verts: [Vertex; 4],
 
@@ -86,7 +87,7 @@ pub struct Rectangle {
     ebo: ElementBufferObject,
 }
 impl Rectangle {
-    pub fn new((x, y): (f32, f32), position: Vector3, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
+    pub fn new((x, y): (f32, f32), position: Vector3, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint, offset_uniform: Uniform) -> Self {
         let verts = [
             Vertex::from_vectors(vector!(x, y, 0.0), color, vector!(1.0, 1.0)),
             Vertex::from_vectors(vector!(-x, y, 0.0), color, vector!(0.0, 1.0)),
@@ -124,14 +125,18 @@ impl Rectangle {
             world_pos: position,
             verts,
             textures,
-            
+            offset_uniform,
             vao,vbo,ebo
         }
+    }
+    pub fn move_pos(&mut self, offset: Vector3) {
+        self.world_pos = self.world_pos+offset;
     }
 }
 impl Object3D for Rectangle {
     fn draw(&self) {
         for (i, text) in self.textures.iter().enumerate() { text.bind(i as u32); }
+        self.offset_uniform.setf3(self.world_pos.0[0], self.world_pos.0[1], self.world_pos.0[2]);
         self.vao.bind();
         self.ebo.bind();
         unsafe { gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null()); }

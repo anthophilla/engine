@@ -4,7 +4,7 @@
 //     };
 // }
 
-use crate::math::Vector;
+use crate::math::{Vector, Vector3};
 
 pub type Matrix3x3 = Matrix<3, 3>;
 pub type Matrix4x4 = Matrix<4, 4>;
@@ -91,6 +91,15 @@ impl Matrix4x4 {
             m[2][0], m[2][1], m[2][2], m[2][3],
             m[3][0], m[3][1], m[3][2], m[3][2],
         ]
+    }
+    //turn into macro later
+    pub fn translation_mat(v: Vector3) -> Self{
+        Self::from_arrays([
+            [1.0, 0.0, 0.0, v.0[0]],
+            [0.0, 1.0, 0.0, v.0[1]],
+            [0.0, 0.0, 1.0, v.0[2]],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
     }
 }
 impl Matrix3x3 {
