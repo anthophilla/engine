@@ -62,12 +62,12 @@ impl ElementBufferObject {
     pub fn _unbind(&self) {
         unsafe {gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);}
     }
-    pub fn buffer_elements(&self, indices: Vec<[i32; 3]>, usage: gl::types::GLenum) {
-        
+    pub fn buffer_elements(&self, indices: Vec<i32>, usage: gl::types::GLenum) {
+        dbg!(&indices);
         unsafe{
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
-                size_of_val(&indices) as isize,
+                (indices.len() * std::mem::size_of::<u32>()) as isize,
                 indices.as_ptr().cast(),
                 usage,
             );

@@ -1,7 +1,15 @@
+use crate::renderer::objects::Rectangle;
 use crate::vector;
 use crate::{
-    math::Vector,
-    renderer::{Renderer},
+    math::{
+        Vector,
+        Quaternion,
+    },
+    renderer::{
+        Renderer,
+        objects::Cube,
+        textures::Texture,
+    },
     Error,
 };
 
@@ -25,7 +33,8 @@ pub struct Game {
     renderer: Renderer,
     glfw: glfw::Glfw,
     window: glfw::PWindow,
-    events: GlfwReceiver<(f64, WindowEvent)>
+    events: GlfwReceiver<(f64, WindowEvent)>,
+    cubes: Vec<Cube>
 }
 impl Game {
     pub fn new() -> Self {
@@ -41,15 +50,30 @@ impl Game {
         
         let renderer = Renderer::init( &mut window);
 
+        let cubes = vec![
+            Cube::new(
+                (0.5, 0.5, 0.5),
+                vector!(0.0, 0.0, 1.0),
+                Quaternion::from_angle_vect(0.0, vector!(1.0, 0.0, 0.0)),
+                vector!(1.0, 0.0, 0.0, 1.0),
+                vec![
+                    Texture::from_file("src/textures/container.jpg").unwrap(),
+                    Texture::from_file("src/textures/awesomeface.png").unwrap()
+                ],
+                gl::DYNAMIC_DRAW
+            )
+        ];
+
         return Self{
             player,
             renderer,
             glfw,
             window,
-            events
+            events,
+            cubes
         }
     }
-    pub fn start(&mut self, ) -> Result<(), Error> {
+    pub fn start(&mut self) -> Result<(), Error> {
         
         self.window.make_current();
         self.window.set_key_polling(true);
@@ -58,7 +82,20 @@ impl Game {
         while !self.window.should_close() {
             
             self.process_events();
-            self.renderer.render(self.glfw.get_time())?;
+            self.renderer.render(vec![
+                &mut self.cubes[0].mesh,
+                // &mut Rectangle::new(
+                //     (0.5, 0.5),
+                //     vector!(0.0, 0.0, 1.0),
+                //     Quaternion::from_angle_vect(0.0, vector!(0.0, 0.0, 0.0)),
+                //     vector!(1.0, 0.0, 0.0, 1.0),
+                //     vec![
+                //         Texture::from_file("src/textures/container.jpg").unwrap(),
+                //         Texture::from_file("src/textures/awesomeface.png").unwrap()
+                //     ],
+                //     gl::STATIC_DRAW
+                // ).mesh
+            ], self.glfw.get_time())?;
             self.window.swap_buffers();
         }
         

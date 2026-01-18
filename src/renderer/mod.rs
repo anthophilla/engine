@@ -1,8 +1,8 @@
 mod buffers;
 mod shaders;
-mod textures;
+pub mod textures;
 mod uniforms;
-mod objects;
+pub mod objects;
 
 use std::collections::HashMap;
 
@@ -13,29 +13,24 @@ use uniforms::Uniform;
 use crate::{Error,
     WINDOW_SIZE_X, WINDOW_SIZE_Y,
     math::{
-        perspective,
-        Color,
-        Vector,
-        Vector3,
-        Vector4,
-        matrix::Matrix4x4,
-        vectors::Quaternion
+        Color, Vector, Vector3, Vector4, matrix::Matrix4x4, perspective, vectors::Quaternion
     },
-    renderer::objects::Rectangle,
+    renderer::objects::{Rectangle, StaticMesh},
     vector
 };
 
+#[derive(Debug)]
 #[repr(C)]
-struct Vertex {
+pub struct Vertex {
     position:  [f32; 3],
     color:     [f32; 4],
     tex_coord: [f32; 2],
 }
 impl Vertex {
-    fn new(position: [f32; 3], color: [f32; 4], tex_coord: [f32; 2]) -> Self {
+    pub fn new(position: [f32; 3], color: [f32; 4], tex_coord: [f32; 2]) -> Self {
         Self{position, color, tex_coord}
     }
-    fn from_vectors(position: Vector3, color: Color, tex_coord: Vector<2>) -> Self {
+    pub fn from_vectors(position: Vector3, color: Color, tex_coord: Vector<2>) -> Self {
         Self::new(position.as_array(), color.as_array(), tex_coord.as_array())
     }
 }
@@ -44,7 +39,7 @@ pub struct Renderer {
     shader_program: Vec<ShaderProgram>,
     uniforms: Vec<Uniform>,
     rectangles: Vec<Rectangle>,
-    textures: HashMap<&'static str, Texture>,
+    //textures: HashMap<&'static str, Texture>,
     wireframe: bool
 }
 impl Renderer {
@@ -68,10 +63,13 @@ impl Renderer {
             Uniform::from_name("transform\0", &shader_program[0]).unwrap(),
         ];
 
-        let textures = HashMap::from([
-            ("container", Texture::from_file("src/textures/container.jpg").unwrap()),
-            ("awesomeface", Texture::from_file("src/textures/awesomeface.png").unwrap())
-        ]);
+        // let textures = HashMap::from([
+        //     ("container", Texture::from_file("src/textures/container.jpg").unwrap()),
+        //     ("awesomeface", Texture::from_file("src/textures/awesomeface.png").unwrap())
+        // ]);
+        unsafe {
+            gl::Enable(gl::DEPTH_TEST);
+        }
         Self::set_texture_params();
 
         let rectangles: Vec<Rectangle> = vec![
@@ -92,12 +90,11 @@ impl Renderer {
             shader_program,
             uniforms,
             rectangles,
-            textures,
             wireframe: true,
         };
     }
     
-    pub fn render(&mut self, time: f64) -> Result<(), Error> {
+    pub fn render(&mut self, meshes: Vec<&mut StaticMesh>, time: f64) -> Result<(), Error> {
         
         self.clear_color(crate::BACKGROUND_COLOR.as_array());
         self.clear();
@@ -107,7 +104,7 @@ impl Renderer {
         self.uniforms[0].seti1(0);
         self.uniforms[1].seti1(1);
         
-        let rot = Quaternion::from_angle_vect((time as f32)*10.0, vector!(0.0, 0.0, 1.0));
+        let rot = Quaternion::from_angle_vect((time as f32)*10.0, vector!(1.0, 0.0, 1.0));
 
         let perspective = perspective(45.0, 1.0, 0.1, 10.0);
         let view = Matrix4x4::translation_mat(vector!(0.0, 0.0, -3.0));
@@ -116,11 +113,12 @@ impl Renderer {
         self.uniforms[3].setmat4(view);
         self.uniforms[4].setmat4(perspective);//perspective
 
-        for rect in &mut self.rectangles {
-            rect.translate(vector!(0.0, 0.0, -0.01));
-            rect.mesh.set_rotation(rot);
+        for mesh in meshes {
+            mesh.translate(vector!(0.0, 0.0, -0.01));
+            mesh.set_rotation(rot);
             //rect.rotate(rot); //broken
-            rect.mesh.draw(&self.uniforms[5], &self.uniforms[2]);
+            //rect.mesh.draw(&self.uniforms[5], &self.uniforms[2]);
+            mesh.draw(&self.uniforms[5], &self.uniforms[2]);
         }
 
         return Ok(())
@@ -130,7 +128,7 @@ impl Renderer {
         unsafe { gl::ClearColor(bg_color[0], bg_color[1], bg_color[2], bg_color[3]); }
     }
     fn clear(&self) {
-        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT); }
+        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); }
     }
 
     fn set_viewport(x: i32, y: i32) { unsafe { gl::Viewport(0, 0, x, y); } }

@@ -2,7 +2,7 @@ pub mod vectors;
 pub mod colors;
 pub mod matrix;
 
-pub use vectors::{Vector, Vector3, Vector4};
+pub use vectors::{Vector, Vector3, Vector4, Quaternion};
 pub use matrix::{Matrix, Matrix4x4};
 pub use colors::Color;
 

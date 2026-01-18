@@ -8,7 +8,7 @@ use crate::{
 
 pub struct StaticMesh {
     textures: Vec<Texture>,
-    tris_count: i32,
+    indices_count: i32,
 
     world_position: Vector3,
     orientation: Quaternion,
@@ -18,7 +18,7 @@ pub struct StaticMesh {
     ebo: ElementBufferObject,
 }
 impl StaticMesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<[i32; 3]>, world_position: Vector3, orientation: Quaternion, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<i32>, world_position: Vector3, orientation: Quaternion, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
         let vao = VertexArrayObject::new().unwrap();
         let vbo = VertexBufferObject::new().unwrap();
         
@@ -40,7 +40,7 @@ impl StaticMesh {
             gl::EnableVertexAttribArray(2);
         }
 
-        let tris_count = indices.len().clone() as i32;
+        let indices_count = indices.len().clone() as i32;
 
         let ebo = ElementBufferObject::new().unwrap();
         ebo.bind();
@@ -50,7 +50,7 @@ impl StaticMesh {
             textures,
             world_position,
             orientation,
-            tris_count,
+            indices_count,
             vao, vbo, ebo
         }
     }
@@ -61,7 +61,9 @@ impl StaticMesh {
         model_uniform.setmat4(self.orientation.to_matrix4x4());
         self.vao.bind();
         self.ebo.bind();
-        unsafe { gl::DrawElements(gl::TRIANGLES, self.tris_count*3, gl::UNSIGNED_INT, std::ptr::null()); }
+        //dbg!(&self.indices_count);
+        // each triangle*3 vertices
+        unsafe { gl::DrawElements(gl::TRIANGLES, self.indices_count, gl::UNSIGNED_INT, std::ptr::null()); }
     }
     pub fn translate(&mut self, pos: Vector3) {
         self.world_position = pos;
@@ -85,7 +87,7 @@ impl Triangle {
             Vertex::from_vectors(vector!(0.0, y/2.0, 0.0), color, vector!(1.0, -1.0)),
             Vertex::from_vectors(vector!(x/2.0, -y/2.0, 0.0), color, vector!(-1.0, 1.0))
         ];
-        let indices = vec![[0, 1, 2]];
+        let indices = vec![0, 1, 2];
 
         let mesh = StaticMesh::new(vertices, indices, position, orientation, textures, usage);
 
@@ -118,7 +120,97 @@ impl Rectangle {
             Vertex::from_vectors(vector!(x, -y, 0.0), color, vector!(1.0, 0.0)),
             Vertex::from_vectors(vector!(-x, -y, 0.0), color, vector!(0.0, 0.0)),
         ];
-        let indices = vec![[1, 0, 2], [1, 2, 3]];
+        let indices = vec![1, 0, 2, 1, 2, 3];
+
+        let mesh = StaticMesh::new(vertices, indices, position, orientation, textures, usage);
+
+        Self { 
+            world_pos: position,
+            orientation,
+            mesh
+        }
+    }
+    pub fn update_mesh(&mut self) {
+        self.mesh.translate(self.world_pos);
+        self.mesh.set_rotation(self.orientation);
+    }
+    pub fn translate(&mut self, offset: Vector3) {
+        self.world_pos = self.world_pos+offset;
+        self.update_mesh();
+    }
+    pub fn rotate(&mut self, rot: Quaternion) {
+        todo!("broken!!!");
+        // self.orientation = self.orientation*rot;
+        // self.update_mesh();
+    }
+}
+
+pub struct Cube {
+    world_pos: Vector3,
+    orientation: Quaternion,
+    pub mesh: StaticMesh,
+}
+impl Cube {
+    pub fn new((x, y, z): (f32, f32, f32), position: Vector3, orientation: Quaternion, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
+        //copy fucking pasted from chatgpt
+        let vertices = vec![
+            // back face
+            Vertex::from_vectors(vector!(-x, -y, -z), color, vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!( x, -y, -z), color, vector!(1.0, 0.0)),
+            Vertex::from_vectors(vector!( x,  y, -z), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!( x,  y, -z), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!(-x,  y, -z), color, vector!(0.0, 1.0)),
+            Vertex::from_vectors(vector!(-x, -y, -z), color, vector!(0.0, 0.0)),
+
+            // front face
+            Vertex::from_vectors(vector!(-x, -y,  z), color, vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!( x, -y,  z), color, vector!(1.0, 0.0)),
+            Vertex::from_vectors(vector!( x,  y,  z), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!( x,  y,  z), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!(-x,  y,  z), color, vector!(0.0, 1.0)),
+            Vertex::from_vectors(vector!(-x, -y,  z), color, vector!(0.0, 0.0)),
+
+            // left face
+            Vertex::from_vectors(vector!(-x,  y,  z), color, vector!(1.0, 0.0)),
+            Vertex::from_vectors(vector!(-x,  y, -z), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!(-x, -y, -z), color, vector!(0.0, 1.0)),
+            Vertex::from_vectors(vector!(-x, -y, -z), color, vector!(0.0, 1.0)),
+            Vertex::from_vectors(vector!(-x, -y,  z), color, vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!(-x,  y,  z), color, vector!(1.0, 0.0)),
+
+            // right face
+            Vertex::from_vectors(vector!( x,  y,  z), color, vector!(1.0, 0.0)),
+            Vertex::from_vectors(vector!( x,  y, -z), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!( x, -y, -z), color, vector!(0.0, 1.0)),
+            Vertex::from_vectors(vector!( x, -y, -z), color, vector!(0.0, 1.0)),
+            Vertex::from_vectors(vector!( x, -y,  z), color, vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!( x,  y,  z), color, vector!(1.0, 0.0)),
+
+            // bottom face
+            Vertex::from_vectors(vector!(-x, -y, -z), color, vector!(0.0, 1.0)),
+            Vertex::from_vectors(vector!( x, -y, -z), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!( x, -y,  z), color, vector!(1.0, 0.0)),
+            Vertex::from_vectors(vector!( x, -y,  z), color, vector!(1.0, 0.0)),
+            Vertex::from_vectors(vector!(-x, -y,  z), color, vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!(-x, -y, -z), color, vector!(0.0, 1.0)),
+
+            // top face
+            Vertex::from_vectors(vector!(-x,  y, -z), color, vector!(0.0, 1.0)),
+            Vertex::from_vectors(vector!( x,  y, -z), color, vector!(1.0, 1.0)),
+            Vertex::from_vectors(vector!( x,  y,  z), color, vector!(1.0, 0.0)),
+            Vertex::from_vectors(vector!( x,  y,  z), color, vector!(1.0, 0.0)),
+            Vertex::from_vectors(vector!(-x,  y,  z), color, vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!(-x,  y, -z), color, vector!(0.0, 1.0)),
+        ];
+        //should be a better way to do this
+        let indices = vec![
+             0,  1,  2,  3,  4,  5,
+             6,  7,  8,  9, 10, 11,
+            12, 13, 14, 15, 16, 17,
+            18, 19, 20, 21, 22, 23,
+            24, 25, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 35,
+        ];
 
         let mesh = StaticMesh::new(vertices, indices, position, orientation, textures, usage);
 
