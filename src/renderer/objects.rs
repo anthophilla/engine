@@ -2,7 +2,7 @@ use std::mem::offset_of;
 
 use crate::{
     math::{Color, Vector, Vector3, vectors::Quaternion},
-    renderer::{Vertex, buffers::{ElementBufferObject, VertexArrayObject, VertexBufferObject}, textures::{self, Texture}, uniforms::Uniform},
+    renderer::{Vertex, buffers::{ElementBufferObject, VertexArrayObject, VertexBufferObject}, textures::Texture, uniforms::Uniform},
     vector
 };
 
@@ -80,8 +80,6 @@ pub struct Triangle{
 }
 impl Triangle {
     pub fn new((x, y): (f32, f32), position: Vector3, orientation: Quaternion, color: Color, textures: Vec<Texture>, usage: gl::types::GLuint) -> Self {
-        let indices = [0, 1, 2];
-
         let vertices = vec![
             Vertex::from_vectors(vector!(-x/2.0, -y/2.0, 0.0), color, vector!(1.0, 1.0)),
             Vertex::from_vectors(vector!(0.0, y/2.0, 0.0), color, vector!(1.0, -1.0)),
@@ -138,7 +136,7 @@ impl Rectangle {
         self.world_pos = self.world_pos+offset;
         self.update_mesh();
     }
-    pub fn rotate(&mut self, rot: Quaternion) {
+    pub fn rotate(&mut self, _rot: Quaternion) {
         todo!("broken!!!");
         // self.orientation = self.orientation*rot;
         // self.update_mesh();
@@ -228,9 +226,55 @@ impl Cube {
         self.world_pos = self.world_pos+offset;
         self.update_mesh();
     }
-    pub fn rotate(&mut self, rot: Quaternion) {
+    pub fn rotate(&mut self, _rot: Quaternion) {
         todo!("broken!!!");
         // self.orientation = self.orientation*rot;
         // self.update_mesh();
+    }
+}
+
+pub struct AxesArrows {
+    vao: VertexArrayObject,
+}
+impl AxesArrows {
+    pub fn new() -> Self {
+        let vertices = vec![
+            //x
+            Vertex::from_vectors(vector!(0.0, 0.0, 0.0), vector!(1.0, 0.0, 0.0, 1.0), vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!(1.0, 0.0, 0.0), vector!(1.0, 0.0, 0.0, 1.0), vector!(0.0, 0.0)),
+            //y
+            Vertex::from_vectors(vector!(0.0, 0.0, 0.0), vector!(0.0, 1.0, 0.0, 1.0), vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!(0.0, 1.0, 0.0), vector!(0.0, 1.0, 0.0, 1.0), vector!(0.0, 0.0)),
+            //z
+            Vertex::from_vectors(vector!(0.0, 0.0, 0.0), vector!(0.0, 0.0, 1.0, 1.0), vector!(0.0, 0.0)),
+            Vertex::from_vectors(vector!(0.0, 0.0, 1.0), vector!(0.0, 0.0, 1.0, 1.0), vector!(0.0, 0.0)),
+        ];
+
+        let vao = VertexArrayObject::new().unwrap();
+        let vbo = VertexBufferObject::new().unwrap();
+        
+        vao.bind();
+        vbo.bind();
+        vbo.buffer(&vertices, gl::STATIC_DRAW);
+
+        //implement this as a function
+        unsafe {
+            let stride = size_of::<Vertex>() as i32;
+            //vertices
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, position) as *const _);
+            gl::EnableVertexAttribArray(0);
+            //color
+            gl::VertexAttribPointer(1, 4, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, color) as *const _);
+            gl::EnableVertexAttribArray(1);
+            //texture
+            gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, stride, offset_of!(Vertex, tex_coord) as *const _);
+            gl::EnableVertexAttribArray(2);
+        }
+        Self{ vao }
+    }
+    pub fn draw(&self) {
+        self.vao.bind();
+        unsafe { gl::DrawArrays(gl::LINES, 0, 6);}
+        self.vao._unbind();
     }
 }
