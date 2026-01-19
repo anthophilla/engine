@@ -3,20 +3,21 @@ mod shaders;
 pub mod textures;
 mod uniforms;
 pub mod objects;
+pub mod camera;
 
-use std::collections::HashMap;
+//use std::collections::HashMap;
 
 use shaders::{Shader, ShaderProgram};
 use textures::Texture;
 use uniforms::Uniform;
 
-use crate::{Error,
-    WINDOW_SIZE_X, WINDOW_SIZE_Y,
-    math::{
+use crate::{
+    Error, WINDOW_SIZE_X, WINDOW_SIZE_Y, game::Player, math::{
         Color, Vector, Vector3, Vector4, matrix::Matrix4x4, perspective, vectors::Quaternion
-    },
-    renderer::objects::{Rectangle, StaticMesh},
-    vector
+    }, renderer::{
+        camera::Camera,
+        objects::{Rectangle, StaticMesh}
+    }, vector
 };
 
 #[derive(Debug)]
@@ -94,7 +95,7 @@ impl Renderer {
         };
     }
     
-    pub fn render(&mut self, meshes: Vec<&mut StaticMesh>, time: f64) -> Result<(), Error> {
+    pub fn render(&mut self, meshes: &Vec<StaticMesh>, player: &mut Player) -> Result<(), Error> {
         
         self.clear_color(crate::BACKGROUND_COLOR.as_array());
         self.clear();
@@ -103,19 +104,16 @@ impl Renderer {
         
         self.uniforms[0].seti1(0);
         self.uniforms[1].seti1(1);
-        
-        let rot = Quaternion::from_angle_vect((time as f32)*10.0, vector!(1.0, 0.0, 1.0));
 
-        let perspective = perspective(45.0, 1.0, 0.1, 10.0);
-        let view = Matrix4x4::translation_mat(vector!(0.0, 0.0, -3.0));
+        //dbg!(player.get_camera_world_position());
+        let view = Matrix4x4::translation_mat(player.get_camera_world_position());
         
-        //self.uniforms[2].setmat4(rot); // model
         self.uniforms[3].setmat4(view);
-        self.uniforms[4].setmat4(perspective);//perspective
+        self.uniforms[4].setmat4(player.camera.perspective);
 
         for mesh in meshes {
-            mesh.translate(vector!(0.0, 0.0, -0.01));
-            mesh.set_rotation(rot);
+            //mesh.translate(vector!(0.0, 0.0, -0.01));
+            //mesh.set_rotation(rot);
             //rect.rotate(rot); //broken
             //rect.mesh.draw(&self.uniforms[5], &self.uniforms[2]);
             mesh.draw(&self.uniforms[5], &self.uniforms[2]);

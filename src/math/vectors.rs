@@ -1,3 +1,5 @@
+use std::process::Output;
+
 use crate::math::{Matrix, matrix::{Matrix3x3, Matrix4x4}};
 
 #[macro_export]
@@ -34,6 +36,9 @@ impl<const N: usize> Vector<N> {
     pub fn dot(&self, other: &Self) -> f32 {
         (0..N).map(|i| self.0[i]*other.0[i]).sum()
     }
+    pub fn invert(&self) -> Self {
+        Self(std::array::from_fn(|i| self.0[i]*-1.0))
+    }
 }
 
 // scalar operators 
@@ -63,6 +68,12 @@ impl<const N: usize> std::ops::Div for Vector<N> {
     //add every component together
     fn div(self, other: Self) -> Self {
         Self(std::array::from_fn(|i| self.0[i] / other.0[i]))
+    }
+}
+impl<const N: usize> std::ops::Mul<f32> for Vector<N> {
+    type Output = Self;
+    fn mul(self, rhs: f32) -> Self {
+        Self(std::array::from_fn(|i| self.0[i]*rhs))
     }
 }
 

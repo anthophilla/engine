@@ -63,7 +63,7 @@ impl ElementBufferObject {
         unsafe {gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);}
     }
     pub fn buffer_elements(&self, indices: Vec<i32>, usage: gl::types::GLenum) {
-        dbg!(&indices);
+        //dbg!(&indices);
         unsafe{
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
