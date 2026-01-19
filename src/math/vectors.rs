@@ -100,6 +100,30 @@ impl Vector4 {
     }
 }
 
+impl Vector3 {
+    pub fn scale(self, scale: Self) -> Self {
+        Matrix3x3::from_arrays([
+            [scale.0[0], 0.0, 0.0],
+            [0.0, scale.0[1], 0.0],
+            [0.0, 0.0, scale.0[2]],
+        ])*self
+    }
+    pub fn translate(self, trans: Self) -> Self {
+        Matrix3x3::from_arrays([
+            [0.0, 0.0, trans.0[0]],
+            [0.0, 0.0, trans.0[1]],
+            [0.0, 0.0, trans.0[2]],
+        ])*self
+    }
+    pub fn cross(self, rhs: Self) -> Self {
+        Self::new([
+            self.0[1]*rhs.0[2] - self.0[2]*rhs.0[1],
+            self.0[2]*rhs.0[0] - self.0[0]*rhs.0[2],
+            self.0[0]*rhs.0[1] - self.0[1]*rhs.0[0],
+        ])
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Quaternion {
     pub w: f32,
@@ -176,7 +200,7 @@ impl std::ops::Mul for Quaternion {
 #[cfg(test)]
 mod test {
     use std::f32::consts::PI;
-    use crate::math::{Vector4, Vector3, Vector, vectors::Quaternion};
+    use crate::math::{Vector4, Vector3, Vector, Quaternion};
 
     fn approx_eq(a: f32, b: f32) -> bool {
         (a - b).abs() < 1e-6
@@ -194,6 +218,14 @@ mod test {
         let v = Vector4::new([1.0, 0.0, 0.0, 1.0]);
         let w = Vector4::new([0.0, 1.0, 0.0, 1.0]);
         dbg!(v.rotate(q), w);
+    }
+
+    #[test]
+    fn cross_vector() {
+        let a = vector!(3.0, 0.0, 2.0);
+        let b = vector!(-1.0, 4.0, 2.0);
+
+        assert_eq!(a.cross(b), vector!(-8.0, -8.0, 12.0))
     }
 
     #[test]
