@@ -1,5 +1,3 @@
-use std::process::Output;
-
 use crate::math::{Matrix, matrix::{Matrix3x3, Matrix4x4}};
 
 #[macro_export]
@@ -122,6 +120,22 @@ impl Vector3 {
             self.0[0]*rhs.0[1] - self.0[1]*rhs.0[0],
         ])
     }
+    pub fn rotate(self, r: Quaternion) -> Self {
+        r.to_matrix3x3()*self
+    }
+    //ewww stinkyyy
+    /// takes in radians [yaw, pitch, roll]
+    pub fn rotate_euler(&self, rot: Vector3) -> Self {
+        //rewrite to add roll
+        let yaw = rot.0[0];
+        let pitch = rot.0[1];
+        let roll = rot.0[2];
+        Self::new([
+            yaw.cos() * pitch.cos(),
+            pitch.sin(),
+            yaw.sin() * pitch.cos(),
+        ])
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -136,6 +150,15 @@ impl Quaternion {
     pub fn from(vect: Vector4) -> Self {
         let a = vect.0[0];
         let axis = Vector3::new([vect.0[1], vect.0[2], vect.0[3]]);
+        
+        if axis.length() == 0.0 {
+            return Self {
+            w: 1.0,
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            };
+        }
         let v = if axis.length()==1.0 {axis} else {axis.normalize()};
         Self{
             w: (a/2.0).cos(),
@@ -151,6 +174,17 @@ impl Quaternion {
         Self::from(vector!(angle.to_radians(), v.0[0], v.0[1], v.0[2]))
     }
 
+    pub fn to_euler(&self) -> Vector3 {
+        let w = self.w;
+        let x = self.x;
+        let y = self.y;
+        let z = self.z;
+        Vector3::new([
+            (2.0*(w*y - x*z)).atan2(w*w + x*x - y*y - z*z),
+            (2.0*(w*x + y*z)).asin(),
+            (2.0*(w*z - x*y)).atan2(w*w - x*x - y*y + z*z)
+        ])
+    }
     
     pub fn to_matrix4x4(&self) -> Matrix4x4 {
         let (w, x, y, z) = (self.w, self.x, self.y, self.z);
@@ -181,6 +215,26 @@ impl Quaternion {
             ]
         ])
     }
+    pub fn to_matrix3x3(&self) -> Matrix3x3 {
+        let (w, x, y, z) = (self.w, self.x, self.y, self.z);
+        Matrix::from_arrays([
+            [
+                1.0 - 2.0*(y*y + z*z),
+                2.0*(x*y - z*w),
+                2.0*(x*z + y*w),
+            ],
+            [
+                2.0*(x*y + z*w),
+                1.0 - 2.0*(x*x + z*z),
+                2.0*(y*z - x*w),
+            ],
+            [
+                2.0*(x*z - y*w),
+                2.0*(y*z + x*w),
+                1.0 - 2.0*(x*x + y*y),
+            ],
+        ])
+    }
     pub const IDENTITY: Self = Self{w: 1.0, x: 0.0, y: 0.0, z: 0.0};
 
 }
@@ -200,7 +254,7 @@ impl std::ops::Mul for Quaternion {
 #[cfg(test)]
 mod test {
     use std::f32::consts::PI;
-    use crate::math::{Vector4, Vector3, Vector, Quaternion};
+    use crate::math::{Vector4, Vector, Quaternion};
 
     fn approx_eq(a: f32, b: f32) -> bool {
         (a - b).abs() < 1e-6

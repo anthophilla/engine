@@ -1,6 +1,6 @@
 use crate::math::Vector3;
 use crate::renderer::camera::Camera;
-use crate::renderer::objects::{Rectangle, StaticMesh};
+use crate::renderer::objects::StaticMesh;
 use crate::vector;
 use crate::{
     math::{
@@ -28,24 +28,42 @@ pub struct Input {
     pub d: bool,
     pub space: bool,
     pub shift: bool,
+
+    pub cursor_diff: (f64, f64),
 }
 
 #[derive(Debug)]
 pub struct Player {
     world_position: Vector3,
+    pub rotation: Quaternion,
     pub camera: Camera,
     pub speed: f32,
+    pub camera_sense: f32
 }
 impl Player {
-    pub fn new() -> Self {
+    pub fn new(position: Vector3, rotation: Quaternion, speed: f32, camera_sense: f32) -> Self {
         Self{
-            world_position: vector!(0.0, 0.0, 0.0),
-            camera: Camera::new(vector!(0.0, 0.0, -2.0)),
-            speed: 10.0
+            world_position: position,
+            rotation,
+            camera: Camera::new(vector!(0.0, 0.0, -2.0), rotation),
+            speed,
+            camera_sense
         }
     }
-    pub fn translate(&mut self, offset: Vector3) { self.world_position = self.world_position+offset }
-    pub fn get_camera_world_position(&self) -> Vector3 { self.world_position+self.camera.local_position }
+
+    fn update(&mut self) {
+        self.camera.set_rotation(self.rotation);
+        self.camera.set_world_position(self.world_position);
+    }
+
+    pub fn translate(&mut self, offset: Vector3) {
+        self.world_position = self.world_position+offset;
+        self.update();
+    }
+    pub fn rotate(&mut self, rot: Quaternion) {
+        self.rotation = self.rotation*rot;
+        self.update();
+    }
 }
 
 pub struct Game {
@@ -75,7 +93,7 @@ impl Game {
                 (0.5, 0.5, 0.5),
                 vector!(0.0, 0.0, 1.0),
                 Quaternion::from_angle_vect(0.0, vector!(1.0, 0.0, 0.0)),
-                vector!(1.0, 0.0, 0.0, 1.0),
+                vector!(1.0, 1.0, 1.0, 1.0),
                 vec![
                     Texture::from_file("src/textures/container.jpg").unwrap(),
                     Texture::from_file("src/textures/awesomeface.png").unwrap()
@@ -86,7 +104,7 @@ impl Game {
                 (0.5, 0.5, 0.5),
                 vector!(0.0, 1.0, -2.0),
                 Quaternion::from_angle_vect(0.0, vector!(1.0, 0.0, 0.0)),
-                vector!(1.0, 0.0, 0.0, 1.0),
+                vector!(1.0, 1.0, 1.0, 1.0),
                 vec![
                     Texture::from_file("src/textures/container.jpg").unwrap(),
                     Texture::from_file("src/textures/awesomeface.png").unwrap()
@@ -111,8 +129,11 @@ impl Game {
         self.window.make_current();
         self.window.set_key_polling(true);
         self.window.set_size_polling(true);
+        
+        self.window.set_cursor_mode(glfw::CursorMode::Disabled);
 
         let mut last_time: f64 = 0.0;
+        let mut last_cursor = self.window.get_cursor_pos(); //my code has been getting worse lately
         while !self.window.should_close() {
             let rot = Quaternion::from_angle_vect((self.glfw.get_time() as f32)*10.0, vector!(1.0, 0.0, 1.0));
 
@@ -126,7 +147,11 @@ impl Game {
             self.delta_time = last_time-current_time;
             last_time = current_time;
 
-            update(&self.input, &mut self.player, (self.delta_time as f32));
+            let current_cursor = self.window.get_cursor_pos();
+            self.input.cursor_diff = (current_cursor.0-last_cursor.0, current_cursor.1-last_cursor.1);
+            last_cursor = current_cursor;
+
+            update(&self.input, &mut self.player, self.delta_time as f32);
         }
         
         return Ok(())
@@ -142,6 +167,14 @@ impl Game {
                 glfw::WindowEvent::Key(Key::F1, _, Action::Press, _) => {
                     self.renderer.switch_wireframe()
                 },
+
+                glfw::WindowEvent::Key(Key::F2, _, Action::Press, _) => {
+                    self.window.set_cursor_mode(glfw::CursorMode::Normal);
+                },
+                glfw::WindowEvent::Key(Key::F1, _, Action::Release, _) => {
+                    self.window.set_cursor_mode(glfw::CursorMode::Disabled);
+                },
+
                 glfw::WindowEvent::Size(x, y) => {
                     self.player.camera.set_aspect_ratio(x as f32/y as f32);
                     self.renderer.resize(x, y)

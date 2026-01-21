@@ -1,8 +1,12 @@
 use std::mem::offset_of;
 
 use crate::{
-    math::{Color, Vector, Vector3, vectors::Quaternion},
-    renderer::{Vertex, buffers::{ElementBufferObject, VertexArrayObject, VertexBufferObject}, textures::Texture, uniforms::Uniform},
+    math::{Color, Matrix4x4, Vector, Vector3, vectors::Quaternion},
+    renderer::{
+        Vertex,
+        buffers::{ElementBufferObject, VertexArrayObject, VertexBufferObject},
+        textures::Texture, uniforms::Uniform
+    },
     vector
 };
 
@@ -272,8 +276,9 @@ impl AxesArrows {
         }
         Self{ vao }
     }
-    pub fn draw(&self) {
+    pub fn draw(&self, model_uniform: &Uniform) {
         self.vao.bind();
+        model_uniform.setmat4(Matrix4x4::IDENTITY);
         unsafe { gl::DrawArrays(gl::LINES, 0, 6);}
         self.vao._unbind();
     }

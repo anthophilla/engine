@@ -1,8 +1,9 @@
-use crate::math::{self, Matrix4x4, Vector3};
+use crate::{math::{self, Matrix4x4, Quaternion, Vector, Vector3}, vector};
 
 #[derive(Debug)]
 pub struct Camera {
-    pub local_position: Vector3,
+    pub position: Vector3,
+    pub rotation: Quaternion,
     pub fov: f32,
     aspect_ratio: f32,
     pub near: f32,
@@ -10,9 +11,10 @@ pub struct Camera {
     pub perspective: Matrix4x4,
 }
 impl Camera {
-    pub fn new(local_position: Vector3) -> Self {
+    pub fn new(position: Vector3, rotation: Quaternion) -> Self {
         Self{
-            local_position,
+            position,
+            rotation,
             fov: 45.0,
             aspect_ratio: 1.0,
             near: 0.1,
@@ -38,4 +40,19 @@ impl Camera {
         self.perspective = math::perspective(fov, self.aspect_ratio, self.near, self.far)
     }
     //pub fn translate(&mut self, offset: Vector3) { self.local_position = self.local_position+offset}
+    pub fn set_world_position(&mut self, pos: Vector3) { self.position=pos; }
+    pub fn set_rotation(&mut self, rot: Quaternion) { self.rotation=rot; }
+
+    pub fn look_at(&self, target: Vector3) -> Matrix4x4 {
+        let forward = target.normalize();
+        let right = (forward.cross(vector!(0.0, 1.0, 0.0))).normalize();
+        let up = right.cross(forward);
+
+        Matrix4x4::from_arrays([
+            [right.0[0],    right.0[1],    right.0[2],    right.dot(&self.position) ],
+            [up.0[0],       up.0[1],       up.0[2],       up.dot(&self.position)     ],
+            [-forward.0[0], -forward.0[1], -forward.0[2], -forward.dot(&self.position)],
+            [0.0,           0.0,           0.0,           1.0]
+        ])
+    }
 }

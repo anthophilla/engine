@@ -1,6 +1,4 @@
 use crate::Error;
-use std::collections::HashMap;
-use crate::renderer::uniforms::Uniform;
 
 pub struct Shader(u32);
 impl Shader {
@@ -40,8 +38,8 @@ impl Shader {
 }
 pub struct ShaderProgram {
     pub program: u32,
-    vertex_shader: Shader,
-    frag_shader:   Shader,
+    _vertex_shader: Shader,
+    _frag_shader:   Shader,
 }
 impl ShaderProgram {
     pub fn create(vertex_shader: Shader, frag_shader: Shader) -> Result<Self, Error> {
@@ -66,7 +64,7 @@ impl ShaderProgram {
 
             gl::DeleteShader(vertex_shader.0.clone());
             gl::DeleteShader(frag_shader.0.clone());
-            return Ok(ShaderProgram { program, vertex_shader, frag_shader })
+            return Ok(ShaderProgram { program, _vertex_shader: vertex_shader, _frag_shader: frag_shader })
         }
     }
     pub fn use_program(&self) {

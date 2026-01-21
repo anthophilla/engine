@@ -15,7 +15,7 @@ impl VertexArrayObject {
     pub fn bind(&self) {
         unsafe {gl::BindVertexArray(self.0);}
     }
-    pub fn unbind(&self) {
+    pub fn _unbind(&self) {
         unsafe {gl::BindVertexArray(0);}
     }
 }
