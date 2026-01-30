@@ -1,35 +1,39 @@
 use engine::{
-    game::{Game, Input, Player},
-    math::{Vector, Quaternion},
-    vector
+    Crash,
+    game::{
+        Game,
+        GameError,
+        GameAction,
+        Scene,
+        InputSettings,
+        Settings,
+        Input
+    },
+    renderer::WindowMode,
 };
 
-fn update(input: &Input, player: &mut Player, delta_time: f32) {
-    let speed = player.speed*delta_time;
+//check if the game should quit
+fn quit(scene: &mut Scene, input: &Input) -> Result<Option<GameAction>, GameError> {
+    if input.exit.0 == 1.0 { return Ok(Some(GameAction::Exit)) }
 
-    player.rotate(
-        Quaternion::from_radian_vect(input.cursor_diff.0 as f32 * delta_time, vector!(0.0, 1.0, 0.0))
-        * Quaternion::from_radian_vect(-input.cursor_diff.1 as f32 * delta_time, vector!(1.0, 0.0, 0.0))
-    );
-    if input.w {
-        player.translate(vector!(0.0, 0.0, 1.0*speed).rotate(player.rotation));
-    }
-    if input.s {
-        player.translate(vector!(0.0, 0.0, -1.0*speed).rotate(player.rotation));}
-    if input.a { player.translate(vector!(1.0*speed, 0.0, 0.0).rotate(player.rotation)); }
-    if input.d { player.translate(vector!(-1.0*speed, 0.0, 0.0).rotate(player.rotation)); }
-    if input.space { player.translate(vector!(0.0, 1.0*speed, 0.0).rotate(player.rotation)); }
-    if input.shift { player.translate(vector!(0.0, -1.0*speed, 0.0).rotate(player.rotation)); }
+    Ok(None)
 }
 
-fn main() -> Result<(), engine::Error> {
-    let mut player = Player::new(
-        vector!(0.0, 0.0, 0.0),
-        Quaternion::from_angle_vect(95.0, vector!(0.0, 1.0, 0.0)),
-        2.0,
-        0.5,
-    );
-    player.camera.set_fov(90.0);
-    let mut game = Game::new(player);
-    game.start(update)
+fn main() -> Result<(), Crash> {
+    let start_scene = Scene::default();
+    let settings = Settings{
+        game_title: "engine",
+        window_size: (500, 500),
+        window_mode: WindowMode::Windowed,
+
+        input_settings: InputSettings::default()
+    };
+    let mut game = Game::init(start_scene, settings)?;
+
+    let update_functions: Vec<fn(&mut Scene, &Input) -> Result<Option<engine::game::GameAction>, GameError>>
+        = vec![quit];
+
+    game.start(update_functions)?;
+    
+    Ok(())
 }

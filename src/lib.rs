@@ -1,20 +1,58 @@
-pub mod game;
-pub mod math;
 pub mod renderer;
+pub mod game;
+//pub use game::{Game, Scene, GameError};
+//pub use renderer::WindowMode;
 
-use math::{Color};
+use game::GameError;
 
-#[derive(Debug, Clone)]
-pub enum Error{
-    VAOGenError(&'static str),
-    VBOGenError(&'static str),
-    EBOGenError(&'static str),
-    ShaderError(String),
-    UniformError(&'static str),
-    TextureError(String),
+use std::fmt::Debug;
+use renderer::{
+    RenderError, WindowError
+};
+
+pub enum Crash {
+    Unknown,
+    RenderError(String),
+    WindowError(String),
+    GameError(String),
+    InputError,
 }
-
-pub static GAME_NAME: &str = "enigne";
-pub const WINDOW_SIZE_X: u32 = 300;
-pub const WINDOW_SIZE_Y: u32 = 300;
-pub static BACKGROUND_COLOR: Color = Color::new([0.5,0.3, 0.3, 1.0]);
+impl Debug for Crash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Crash::Unknown => write!(f, "encountered a unknown error!"),
+            Crash::RenderError(msg) | Crash::WindowError(msg)
+                => write!(f, "Renderer crashed: {msg}!"),
+            Crash::GameError(msg) => write!(f, "Game logic crashed: {msg}"),
+            Crash::InputError => write!(f, "encountered a problem while processing input")
+        }
+    }
+}
+impl From<RenderError> for Crash {
+    fn from(value: RenderError) -> Self {
+        Self::RenderError(
+            match value {
+                RenderError::InitError => "couldn't start the rendering process"
+            }.to_string()
+        )
+    }
+}
+impl From<WindowError> for Crash {
+    fn from(value: WindowError) -> Self {
+        Self::WindowError(
+            match value {
+                WindowError::InitError => "couldn't initialize window",
+                WindowError::CreateError => "couldn't create window"
+            }.to_string()
+        )
+    }
+}
+impl From<GameError> for Crash {
+    fn from(value: GameError) -> Self {
+        Self::GameError(
+            match value {
+                GameError::Custom(msg) => format!("custom game error: {}", msg)
+            }.to_string()
+        )
+    }
+}
