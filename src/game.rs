@@ -59,9 +59,9 @@ pub struct Game {
 
 impl Game {
     pub fn init(scene: Scene, settings: Settings) -> Result<Self, Crash> {
-        let window = Window::new(&settings)?;
+        let mut window = Window::new(&settings)?;
         
-        let renderer = Renderer::init()?;
+        let renderer = Renderer::init(&mut window.window, &settings)?;
 
         let input = Input::from_settings(&settings.input_settings);
 
@@ -85,6 +85,7 @@ impl Game {
                 }
             }
 
+            self.renderer.render()?;
             self.window.swap_buffers()
         }
         Ok(())

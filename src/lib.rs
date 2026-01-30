@@ -1,5 +1,6 @@
 pub mod renderer;
 pub mod game;
+pub mod math;
 //pub use game::{Game, Scene, GameError};
 //pub use renderer::WindowMode;
 
@@ -32,7 +33,7 @@ impl From<RenderError> for Crash {
     fn from(value: RenderError) -> Self {
         Self::RenderError(
             match value {
-                RenderError::InitError => "couldn't start the rendering process"
+                RenderError::InitError(msg) => format!("couldn't start the rendering process: {msg}")
             }.to_string()
         )
     }
