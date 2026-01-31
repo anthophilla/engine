@@ -21,3 +21,9 @@ impl<const N: usize> Vector<N> {
 
     //pub fn length(&self) -> f32
 }
+impl<const N: usize> std::ops::Index<usize> for Vector<N> {
+    type Output = f32;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
