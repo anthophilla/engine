@@ -7,16 +7,18 @@ pub use settings::{Settings, InputSettings};
 
 use crate::{
     Crash,
-    renderer::{Camera, Renderer, Window, window}
+    renderer::{Camera, Renderer, Window, mesh::StaticMesh, window}
 };
 
 //any error that is not engines
 pub enum GameError{
-    Custom(String)
+    Other(String)
 }
 
 pub enum GameAction {
+    None,
     Exit,
+    LoadScene(Scene),
 }
 
 pub struct Entity {}
@@ -37,16 +39,18 @@ impl Default for Player {
 
 pub struct Scene {
     entities: Vec<Entity>,
+    world: Vec<StaticMesh>, //change later
     player: Player
 }
 impl Scene {
-    pub fn new(entities: Vec<Entity>, player: Player) -> Self {
-        Self { entities, player }
+    pub fn new(entities: Vec<Entity>, world: Vec<StaticMesh>, player: Player) -> Self {
+        Self { entities, world, player }
     }
+    //pub fn load(&self)
 }
 impl Default for Scene {
     fn default() -> Self {
-        Self::new(vec![], Player::default())
+        Self::new(vec![], vec![], Player::default())
     }
 }
 
@@ -58,46 +62,62 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn init(scene: Scene, settings: Settings) -> Result<Self, Crash> {
+    pub fn init(settings: Settings) -> Result<Self, Crash> {
         let mut window = Window::new(&settings)?;
+        window.make_current();
         
         let renderer = Renderer::init(&mut window.window, &settings)?;
 
-        let input = Input::from_settings(&settings.input_settings);
-
         Ok(Self {
             renderer,
-            scene,
+            scene: Scene::default(),
             settings,
             window
         })
     }
 
-    pub fn start(&mut self, update_functions: Vec<fn(&mut Scene, &Input) -> Result<Option<GameAction>, GameError>>) -> Result<(), Crash> {
+    pub fn start(
+        &mut self,
+        start_functions: Vec<fn(&mut Scene, &Input) -> Result<GameAction, GameError>>,
+        update_functions: Vec<fn(&mut Scene, &Input) -> Result<GameAction, GameError>>
+    ) -> Result<(), Crash> {
         self.window.start(glfw::CursorMode::Normal);
+
+        //run start functions
+        for fun in &start_functions {
+            let action = fun(&mut self.scene, &self.window.input)?;
+            self.handle_action(action);
+        }
 
         while !self.window.should_close() {
             self.window.process_input()?;
+
+            //run update functions
             for fun in &update_functions {
-                match fun(&mut self.scene, &self.window.input)? {
-                    Some(action) => self.handle_action(&action),
-                    None => {},
-                }
+                let action = fun(&mut self.scene, &self.window.input)?;
+                self.handle_action(action);
             }
 
-            self.renderer.render()?;
+            let static_meshes = &self.scene.world;
+            self.renderer.render(static_meshes)?;
             self.window.swap_buffers()
         }
         Ok(())
     }
 
-    fn handle_action(&mut self, action: &GameAction) {
+    fn handle_action(&mut self, action: GameAction) {
         match action {
             GameAction::Exit => self.quit(),
+            GameAction::LoadScene(scene) => self.load_scene(scene),
+            GameAction::None => {},
         }
     }
 
     fn quit(&mut self) {
         self.window.set_should_close(true);
+    }
+
+    fn load_scene(&mut self, scene: Scene) {
+        self.scene = scene
     }
 }

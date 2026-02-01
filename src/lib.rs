@@ -33,7 +33,12 @@ impl From<RenderError> for Crash {
     fn from(value: RenderError) -> Self {
         Self::RenderError(
             match value {
-                RenderError::InitError(msg) => format!("couldn't start the rendering process: {msg}")
+                RenderError::InitError(msg) => format!("couldn't start the rendering process: {msg}"),
+                RenderError::ShaderError(msg) => format!("shader error: {msg}"),
+                RenderError::UniformError(msg) => format!("uniform error: {msg}"),
+                RenderError::VBOError => "vbo error".to_string(),
+                RenderError::VAOError => "vao error".to_string(),
+                RenderError::EBOError => "ebo error".to_string(),
             }.to_string()
         )
     }
@@ -52,7 +57,7 @@ impl From<GameError> for Crash {
     fn from(value: GameError) -> Self {
         Self::GameError(
             match value {
-                GameError::Custom(msg) => format!("custom game error: {}", msg)
+                GameError::Other(msg) => format!("custom game error: {}", msg)
             }.to_string()
         )
     }

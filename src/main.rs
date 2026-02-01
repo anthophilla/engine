@@ -1,26 +1,38 @@
 use engine::{
     Crash,
     game::{
-        Game,
-        GameError,
-        GameAction,
-        Scene,
-        InputSettings,
-        Settings,
-        Input
+        Game, GameAction, GameError, Input, InputSettings, Player, Scene, Settings
     },
-    renderer::WindowMode,
+    math::Vector,
+    renderer::{WindowMode, mesh::StaticMesh},
+    vector
 };
 
 //check if the game should quit
-fn quit(scene: &mut Scene, input: &Input) -> Result<Option<GameAction>, GameError> {
-    if input.exit.0 == 1.0 { return Ok(Some(GameAction::Exit)) }
+fn quit(scene: &mut Scene, input: &Input) -> Result<GameAction, GameError> {
+    if input.exit.0 == 1.0 { return Ok(GameAction::Exit) }
 
-    Ok(None)
+    Ok(GameAction::None)
 }
 
-fn main() -> Result<(), Crash> {
-    let start_scene = Scene::default();
+fn first_scene(_: &mut Scene, _: &Input) -> Result<GameAction, GameError> {
+    let world = vec![
+        StaticMesh::triangle(
+            (1.0, 1.0),
+            vector!(0.0, 0.0, 0.0),
+            vector!(0.0, 1.0, 0.0, 1.0)
+        ).map_err(|_| GameError::Other("TODO! mesherror".to_string()))?
+    ];
+    let scene = Scene::new(
+        vec![],
+        world,
+        Player::default()
+    );
+
+    Ok(GameAction::LoadScene(scene))
+}
+
+fn main() -> Result<(), Crash> {  
     let settings = Settings{
         game_title: "engine",
         window_size: (500, 500),
@@ -28,12 +40,13 @@ fn main() -> Result<(), Crash> {
 
         input_settings: InputSettings::default()
     };
-    let mut game = Game::init(start_scene, settings)?;
+    let mut game = Game::init(settings)?;
 
-    let update_functions: Vec<fn(&mut Scene, &Input) -> Result<Option<engine::game::GameAction>, GameError>>
+    let update_functions: Vec<fn(&mut Scene, &Input) -> Result<engine::game::GameAction, GameError>>
         = vec![quit];
 
-    game.start(update_functions)?;
+    let start_functions: Vec<fn(&mut Scene, &Input) -> Result<GameAction, GameError>> = vec![first_scene];
+    game.start(start_functions, update_functions)?;
     
     Ok(())
 }
