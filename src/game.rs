@@ -1,24 +1,33 @@
-use glfw::{Action, Key};
-
 mod input;
 mod settings;
+use std::arch::x86_64;
+
 pub use input::Input;
 pub use settings::{Settings, InputSettings};
 
 use crate::{
     Crash,
-    renderer::{Camera, Renderer, Window, mesh::StaticMesh, window}
+    renderer::{Camera, RenderError, Renderer, Window, mesh::StaticMesh},
+    math::Vector,
+    vector
 };
 
 //any error that is not engines
 pub enum GameError{
-    Other(String)
+    Other(String),
+    Engine(Crash)
+}
+impl From<RenderError> for GameError {
+    fn from(value: RenderError) -> Self {
+        Self::Engine(value.into())
+    }
 }
 
 pub enum GameAction {
     None,
     Exit,
     LoadScene(Scene),
+    Resize(u32, u32),
 }
 
 pub struct Entity {}
@@ -28,7 +37,13 @@ pub struct Player {
 }
 impl Player {
     fn new() -> Self {
-        Self { camera: Camera::new() }
+        let camera = Camera::new(
+            vector!(0.0, 0.0, 0.0),
+            90.0,
+            1.0,
+            100.0,
+    );
+        Self { camera }
     }
 }
 impl Default for Player {
@@ -90,7 +105,8 @@ impl Game {
         }
 
         while !self.window.should_close() {
-            self.window.process_input()?;
+            let input_action = self.window.process_input()?;
+            self.handle_action(input_action);
 
             //run update functions
             for fun in &update_functions {
@@ -99,7 +115,7 @@ impl Game {
             }
 
             let static_meshes = &self.scene.world;
-            self.renderer.render(static_meshes)?;
+            self.renderer.render(&self.scene.player.camera, static_meshes)?;
             self.window.swap_buffers()
         }
         Ok(())
@@ -109,6 +125,10 @@ impl Game {
         match action {
             GameAction::Exit => self.quit(),
             GameAction::LoadScene(scene) => self.load_scene(scene),
+            GameAction::Resize(x, y) => {
+                self.scene.player.camera.change_aspect_ratio(x as f32 / y as f32);
+                self.renderer.resize((x, y))
+            },
             GameAction::None => {},
         }
     }

@@ -8,8 +8,8 @@ use crate::{
 
 pub struct Uniform(i32);
 impl Uniform {
-    pub fn from_name(name: &'static str, program: &ShaderProgram) -> Result<Self, RenderError> {
-        let uniform = unsafe { gl::GetUniformLocation(program.program, name.as_ptr().cast())};
+    pub fn from_name(name: &'static str, program: u32) -> Result<Self, RenderError> {
+        let uniform = unsafe { gl::GetUniformLocation(program, name.as_ptr().cast())};
 
         if uniform==-1 {return Err(RenderError::UniformError(format!("couldn't find uniform: '{name}' (maybe you forgot null byte)")))}
         return Ok(Self(uniform))

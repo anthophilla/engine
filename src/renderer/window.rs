@@ -1,6 +1,6 @@
-use glfw::{Context, GlfwReceiver, WindowEvent, fail_on_errors};
+use glfw::{Context, GlfwReceiver, WindowEvent};
 
-use crate::{Crash, game::{Input, Settings}};
+use crate::{Crash, game::{GameAction, Input, Settings}};
 
 pub enum WindowError{
     InitError,
@@ -25,7 +25,7 @@ impl Window {
         let mut glfw = 
             glfw::init_no_callbacks().map_err(|_| WindowError::InitError)?;
             //glfw::init(fail_on_errors!()).unwrap(); //dont use unwrap
-        let (mut window, events) = glfw.create_window(
+        let (window, events) = glfw.create_window(
             settings.window_size.0, 
             settings.window_size.1,
             settings.game_title,
@@ -43,6 +43,7 @@ impl Window {
     pub fn start(&mut self, cursor_mode: glfw::CursorMode) {
         self.window.make_current();
         self.window.set_key_polling(true);
+        self.window.set_size_polling(true);
 
         self.set_cursor_mode(cursor_mode);
     }
@@ -56,9 +57,8 @@ impl Window {
     pub fn should_close(&self) -> bool { self.window.should_close() }
     pub fn make_current(&mut self) { self.window.make_current(); }
 
-    pub fn process_input(&mut self) -> Result<(), Crash> {
+    pub fn process_input(&mut self) -> Result<GameAction, Crash> {
         self.glfw.poll_events();
-        self.input.process(&self.events)?; 
-        Ok(())
+        Ok(self.input.process(&self.events)?) 
     }
 }

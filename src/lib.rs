@@ -39,6 +39,7 @@ impl From<RenderError> for Crash {
                 RenderError::VBOError => "vbo error".to_string(),
                 RenderError::VAOError => "vao error".to_string(),
                 RenderError::EBOError => "ebo error".to_string(),
+                RenderError::TextureError(msg) => format!("texture error: {msg}")
             }.to_string()
         )
     }
@@ -55,10 +56,9 @@ impl From<WindowError> for Crash {
 }
 impl From<GameError> for Crash {
     fn from(value: GameError) -> Self {
-        Self::GameError(
-            match value {
-                GameError::Other(msg) => format!("custom game error: {}", msg)
-            }.to_string()
-        )
+        match value {
+            GameError::Other(msg) => Self::GameError(format!("custom game error: {}", msg)),
+            GameError::Engine(e) => e,
+        }
     }
 }

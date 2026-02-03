@@ -1,6 +1,8 @@
+use std::arch::x86_64;
+
 use glfw::{Key, WindowEvent};
 
-use crate::{Crash, game::settings::InputSettings, renderer::window::Window};
+use crate::{Crash, game::{GameAction, settings::InputSettings}, renderer::window::Window};
 
 // enum KeyAlias {
 //     W,
@@ -29,7 +31,7 @@ pub struct Input {
 
 impl Input {
     //TODO refactor pleaseeeee :(
-    pub fn process(&mut self, events: &glfw::GlfwReceiver<(f64, WindowEvent)>) -> Result<(), Crash>{
+    pub fn process(&mut self, events: &glfw::GlfwReceiver<(f64, WindowEvent)>) -> Result<GameAction, Crash>{
         //window.glfw.poll_events();
 
         for (_, event) in glfw::flush_messages(events) {
@@ -46,11 +48,12 @@ impl Input {
 
                     _ => {},
                 }},
+                WindowEvent::Size(x, y) => return Ok(GameAction::Resize(x as u32, y as u32)),
                 _ => {},              
             };
         }
 
-        Ok(())
+        Ok(GameAction::None)
     }
     pub fn from_settings(settings: &InputSettings) -> Self {
         Self {

@@ -1,4 +1,4 @@
-use crate::renderer::RenderError;
+use crate::renderer::{Uniform, RenderError};
 
 #[derive(Clone, Copy)]
 pub enum ShaderType {
@@ -69,10 +69,21 @@ impl Shader {
     }
 }
 
+//sturct Uniforms  TODO
+
 pub struct ShaderProgram {
     pub program: u32,
     _vertex_shader: Shader,
-    _frag_shader: Shader
+    _frag_shader: Shader,
+
+    pub perspective: Uniform,
+    pub view:        Uniform,
+    
+    pub model_transform: Uniform,
+    pub model_rotation:  Uniform,
+
+    pub texture0: Uniform,
+    pub texture1: Uniform,
 }
 impl ShaderProgram {
     pub fn create(vertex_shader: Shader, frag_shader: Shader) -> Result<Self, RenderError> {unsafe {
@@ -107,6 +118,16 @@ impl ShaderProgram {
             program,
             _vertex_shader: vertex_shader,
             _frag_shader: frag_shader,
+
+            perspective: Uniform::from_name("perspective\0", program)?,
+            view: Uniform::from_name("view\0", program)?,
+
+            model_transform: Uniform::from_name("model_trans\0", program)?,
+            model_rotation: Uniform::from_name("model_rot\0", program)?,
+
+            texture0: Uniform::from_name("texture1\0", program)?,
+            texture1: Uniform::from_name("texture2\0", program)?,
+
         })
     }}
     pub fn use_program(&self) {unsafe { gl::UseProgram(self.program); }}

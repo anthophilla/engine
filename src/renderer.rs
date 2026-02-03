@@ -4,10 +4,11 @@ pub mod mesh;
 mod buffers;
 mod uniform;
 mod shaders;
+mod texture;
 
 pub use camera::Camera;
-use glfw::Context;
 pub use window::{Window, WindowError, WindowMode};
+pub use texture::Texture;
 
 use std::mem::offset_of;
 
@@ -17,7 +18,7 @@ use shaders::{Shader, ShaderProgram, ShaderType};
 
 use crate::{
     game::Settings,
-    math::{Color, Vector, Vector3},
+    math::{Color, Mat4, Vector, Vector3},
     vector
 };
 
@@ -30,6 +31,7 @@ pub enum RenderError {
     EBOError,
     ShaderError(String),
     UniformError(String),
+    TextureError(String),
 }
 
 #[derive(Debug)]
@@ -64,9 +66,6 @@ impl Vertex {
 
 pub struct Renderer {
     shader_programs: Vec<ShaderProgram>,
-
-    model_transform: Uniform,
-    model_rot: Uniform,
 }
 
 impl Renderer {
@@ -83,27 +82,49 @@ impl Renderer {
 
         let program = ShaderProgram::create(vertex_shader, frag_shader)?;
 
+        unsafe { gl::Enable(gl::DEPTH_TEST); }
+        Self::set_texture_params();
+
         Ok(Self {
-            model_transform: Uniform::from_name("transform\0", &program)?,
-            model_rot: Uniform::from_name("model\0", &program)?,
             shader_programs: vec![program]
         })
     }
 
-    pub fn render(&self, static_meshes: &Vec<StaticMesh>) -> Result<(), RenderError> {
+    pub fn render(&self, camera: &Camera, static_meshes: &Vec<StaticMesh>) -> Result<(), RenderError> {
         self.clear_color(BACKGROUND_COLOR);
         self.clear();
 
+        let program = &self.shader_programs[0];
+        program.use_program();
+
+        program.texture0.seti1(0);
+        program.texture1.seti1(1);
+
+        program.perspective.setmat4(camera.perspective);
+        //program.perspective.setmat4(Mat4::IDENTITY);
+        program.view.setmat4(Mat4::IDENTITY);
+
         for mesh in static_meshes {
-            mesh.draw(&self.model_transform, &self.model_rot);
+            mesh.draw(&program.model_transform, &program.model_rotation);
         }
 
         Ok(())
     }
 
+    pub fn resize(&self, (x, y): (u32, u32)) { Self::set_viewport(x as i32, y as i32); }
+
     fn set_viewport(x: i32, y: i32) { unsafe { gl::Viewport(0, 0, x, y); } }
     fn clear_color(&self, color: Color) {unsafe {
         gl::ClearColor(color.0[0], color.0[1], color.0[2], color.0[3]);
     }}
-    fn clear(&self) {unsafe { gl::Clear(gl::COLOR_BUFFER_BIT); }}
+    fn clear(&self) {unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); }}
+
+    fn set_texture_params() {unsafe {
+        //i think the unwraps here arent that bad
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT.try_into().unwrap());
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT.try_into().unwrap());
+
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST.try_into().unwrap());
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST.try_into().unwrap());
+    }}
 }

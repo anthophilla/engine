@@ -4,24 +4,30 @@ use engine::{
         Game, GameAction, GameError, Input, InputSettings, Player, Scene, Settings
     },
     math::Vector,
-    renderer::{WindowMode, mesh::StaticMesh},
+    renderer::{Texture, WindowMode, mesh::StaticMesh},
     vector
 };
 
 //check if the game should quit
-fn quit(scene: &mut Scene, input: &Input) -> Result<GameAction, GameError> {
+fn quit(_scene: &mut Scene, input: &Input) -> Result<GameAction, GameError> {
     if input.exit.0 == 1.0 { return Ok(GameAction::Exit) }
 
     Ok(GameAction::None)
 }
 
 fn first_scene(_: &mut Scene, _: &Input) -> Result<GameAction, GameError> {
+    let textures = vec![
+        Texture::from_file("src/textures/awesomeface.png")?,
+        Texture::from_file("src/textures/container.jpg")?,
+    ];
+    
     let world = vec![
-        StaticMesh::triangle(
-            (1.0, 1.0),
-            vector!(0.0, 0.0, 0.0),
-            vector!(0.0, 1.0, 0.0, 1.0)
-        ).map_err(|_| GameError::Other("TODO! mesherror".to_string()))?
+        StaticMesh::cube(
+            (0.5, 0.5, 0.5),
+            vector!(0.0, 0.0, -2.0),
+            vector!(1.0, 1.0, 1.0, 1.0),
+            textures
+        ).map_err(|_| GameError::Other("TODO! mesh error".to_string()))?
     ];
     let scene = Scene::new(
         vec![],

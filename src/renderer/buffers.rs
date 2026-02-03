@@ -13,7 +13,7 @@ impl VertexArrayObject {
     }
 
     pub fn bind(&self) {unsafe { gl::BindVertexArray(self.0); }}
-    pub fn unbind() {unsafe { gl::BindVertexArray(0); }}
+    pub fn _unbind() {unsafe { gl::BindVertexArray(0); }}
 }
 
 pub struct VertexBufferObject(gl::types::GLuint);
@@ -27,9 +27,10 @@ impl VertexBufferObject {
     }
 
     pub fn bind(&self) {unsafe { gl::BindBuffer(gl::ARRAY_BUFFER, self.0); }}
-    pub fn unbind() {unsafe { gl::BindBuffer(gl::ARRAY_BUFFER, 0); }}
+    pub fn _unbind() {unsafe { gl::BindBuffer(gl::ARRAY_BUFFER, 0); }}
     
     pub fn buffer(&self, vertices: &[Vertex], usage: gl::types::GLenum) {unsafe {
+        //dbg!(&vertices);
         gl::BufferData(
             gl::ARRAY_BUFFER,
             size_of_val(vertices) as isize,
@@ -51,7 +52,7 @@ impl ElementBufferObject {
     pub fn bind(&self) {unsafe {
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.0);
     }}
-    pub fn unbind() {unsafe { gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0); }}
+    pub fn _unbind() {unsafe { gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0); }}
 
     pub fn buffer_elements(&self, indices: Vec<i32>, usage: gl::types::GLenum) {unsafe {
         gl::BufferData(
