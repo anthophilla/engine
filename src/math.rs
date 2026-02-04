@@ -6,6 +6,7 @@ pub mod quaternion;
 pub use color::Color;
 pub use vector::{Vector, Vector3, Vector4};
 pub use matrix::{Matrix, Mat3, Mat4};
+pub use quaternion::Quaternion;
 
 pub fn perspective(fov_deg: f32, aspect: f32, near: f32, far: f32) -> Mat4 {
     let scaling_factor = 
