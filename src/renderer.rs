@@ -17,7 +17,7 @@ use uniform::Uniform;
 use shaders::{Shader, ShaderProgram, ShaderType};
 
 use crate::{
-    game::Settings,
+    game::{Scene, Settings},
     math::{Color, Mat4, Vector, Vector3},
     vector
 };
@@ -90,7 +90,9 @@ impl Renderer {
         })
     }
 
-    pub fn render(&self, camera: &Camera, static_meshes: &Vec<StaticMesh>) -> Result<(), RenderError> {
+    pub fn render(&self, scene: &Box<dyn Scene>) -> Result<(), RenderError> {
+        let camera = scene.get_current_camera();
+        
         self.clear_color(BACKGROUND_COLOR);
         self.clear();
 
@@ -104,9 +106,8 @@ impl Renderer {
         //program.perspective.setmat4(Mat4::IDENTITY);
         program.view.setmat4(Mat4::IDENTITY);
 
-        for mesh in static_meshes {
-            mesh.draw(&program.model_transform, &program.model_rotation);
-        }
+        let mut mesh_func = |mesh: &dyn Mesh| mesh.draw(&program.model_transform, &program.model_rotation);
+        scene.for_each_mesh(&mut mesh_func);
 
         Ok(())
     }

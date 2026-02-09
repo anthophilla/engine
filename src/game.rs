@@ -1,13 +1,20 @@
 mod input;
 mod settings;
-use std::arch::x86_64;
+mod player;
+mod scene;
+mod object;
 
 pub use input::Input;
 pub use settings::{Settings, InputSettings};
+pub use player::Player;
+pub use scene::Scene;
+pub use object::GameObject;
+
+use scene::EmptyScene;
 
 use crate::{
     Crash,
-    renderer::{Camera, RenderError, Renderer, Window, mesh::StaticMesh},
+    renderer::{Camera, RenderError, Renderer, Window, mesh::Mesh},
     math::Vector,
     vector
 };
@@ -23,54 +30,23 @@ impl From<RenderError> for GameError {
     }
 }
 
+pub enum GameState {
+    Menu(Box<dyn Scene>),
+    //Bad name
+    Game(Box<dyn Scene>),
+    Loading(Box<dyn Scene>),
+}
+
 pub enum GameAction {
     None,
     Exit,
-    LoadScene(Scene),
+    ///use also for changing game scenes
+    ChangeGameState(GameState),
     Resize(u32, u32),
 }
 
-pub struct Entity {}
-
-pub struct Player {
-    camera: Camera,
-}
-impl Player {
-    fn new() -> Self {
-        let camera = Camera::new(
-            vector!(0.0, 0.0, 0.0),
-            90.0,
-            1.0,
-            100.0,
-    );
-        Self { camera }
-    }
-}
-impl Default for Player {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-pub struct Scene {
-    entities: Vec<Entity>,
-    world: Vec<StaticMesh>, //change later
-    player: Player
-}
-impl Scene {
-    pub fn new(entities: Vec<Entity>, world: Vec<StaticMesh>, player: Player) -> Self {
-        Self { entities, world, player }
-    }
-    //pub fn load(&self)
-}
-impl Default for Scene {
-    fn default() -> Self {
-        Self::new(vec![], vec![], Player::default())
-    }
-}
-
 pub struct Game {
-    scene: Scene,
+    state: GameState,
     renderer: Renderer,
     settings: Settings,
     window: Window
@@ -85,7 +61,7 @@ impl Game {
 
         Ok(Self {
             renderer,
-            scene: Scene::default(),
+            state: GameState::Loading(Box::new(EmptyScene::new())),
             settings,
             window
         })
@@ -93,14 +69,14 @@ impl Game {
 
     pub fn start(
         &mut self,
-        start_functions: Vec<fn(&mut Scene, &Input) -> Result<GameAction, GameError>>,
-        update_functions: Vec<fn(&mut Scene, &Input) -> Result<GameAction, GameError>>
+        start_functions: Vec<fn(&mut GameState, &Input) -> Result<GameAction, GameError>>,
+        update_functions: Vec<fn(&mut GameState, &Input) -> Result<GameAction, GameError>>
     ) -> Result<(), Crash> {
         self.window.start(glfw::CursorMode::Normal);
 
         //run start functions
         for fun in &start_functions {
-            let action = fun(&mut self.scene, &self.window.input)?;
+            let action = fun(&mut self.state, &self.window.input)?;
             self.handle_action(action);
         }
 
@@ -110,12 +86,13 @@ impl Game {
 
             //run update functions
             for fun in &update_functions {
-                let action = fun(&mut self.scene, &self.window.input)?;
+                let action = fun(&mut self.state, &self.window.input)?;
                 self.handle_action(action);
             }
 
-            let static_meshes = &self.scene.world;
-            self.renderer.render(&self.scene.player.camera, static_meshes)?;
+            let scene= self.get_scene();
+
+            self.renderer.render(scene)?;
             self.window.swap_buffers()
         }
         Ok(())
@@ -124,20 +101,33 @@ impl Game {
     fn handle_action(&mut self, action: GameAction) {
         match action {
             GameAction::Exit => self.quit(),
-            GameAction::LoadScene(scene) => self.load_scene(scene),
+            GameAction::ChangeGameState(state) => self.state = state,
             GameAction::Resize(x, y) => {
-                self.scene.player.camera.change_aspect_ratio(x as f32 / y as f32);
+                self.get_mut_scene()
+                .get_mut_camera()
+                .change_aspect_ratio(x as f32 / y as f32);
                 self.renderer.resize((x, y))
             },
             GameAction::None => {},
         }
     }
+    
+    fn get_scene(&self) -> &Box<dyn Scene> {
+        match &self.state {
+            GameState::Menu(scene) |
+            GameState::Game(scene) |
+            GameState::Loading(scene) => scene,
+        }
+    }
+    fn get_mut_scene(&mut self) -> &mut Box<dyn Scene> {
+        match &mut self.state {
+            GameState::Menu(scene) |
+            GameState::Game(scene) |
+            GameState::Loading(scene) => scene,
+        }
+    }
 
     fn quit(&mut self) {
         self.window.set_should_close(true);
-    }
-
-    fn load_scene(&mut self, scene: Scene) {
-        self.scene = scene
     }
 }

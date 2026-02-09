@@ -1,8 +1,7 @@
 use crate::{
     math::{Mat3, Mat4, Vector},
     renderer::{
-        RenderError,
-        shaders::ShaderProgram
+        RenderError
     }
 };
 

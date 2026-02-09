@@ -1,4 +1,4 @@
-use crate::math::{Mat4, Vector3};
+use crate::{math::{Mat4, Vector3, Vector}, vector};
 
 pub struct Camera {
     world_position: Vector3,
@@ -43,4 +43,10 @@ impl Camera {
     }
 
     //pub fn look_at()
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self::new(vector!(0.0, 0.0, 0.0), 90.0, 1.0, 100.0)
+    }
 }
