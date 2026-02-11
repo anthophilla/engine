@@ -88,6 +88,10 @@ impl Renderer {
         unsafe { gl::Enable(gl::DEPTH_TEST); }
         Self::set_texture_params();
 
+        program.use_program();
+        program.texture0.seti1(0);
+        program.texture1.seti1(1);
+
         Ok(Self {
             shader_programs: vec![program]
         })
@@ -102,12 +106,9 @@ impl Renderer {
         let program = &self.shader_programs[0];
         program.use_program();
 
-        program.texture0.seti1(0);
-        program.texture1.seti1(1);
-
         program.perspective.setmat4(camera.perspective);
         //program.perspective.setmat4(Mat4::IDENTITY);
-        program.view.setmat4(Mat4::IDENTITY);
+        program.view.setmat4(camera.look_at(vector!(0.5, 0.0, -1.0)));
 
         let mut mesh_func = |mesh: &dyn Mesh| mesh.draw(&program.model_transform, &program.model_rotation);
         scene.for_each_mesh(&mut mesh_func);

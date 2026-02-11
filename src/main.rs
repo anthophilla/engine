@@ -42,6 +42,8 @@ impl GameObject for Cube {
     fn get_mesh(&self) -> Option<Box<&dyn engine::renderer::mesh::Mesh>> {
         Some(Box::new(&self.mesh))
     }
+    fn get_position(&self) -> Vector3 { self.position }
+    fn set_position(&mut self, pos: Vector3) { self.position = pos }
 }
 
 struct StartScene {

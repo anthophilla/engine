@@ -66,6 +66,11 @@ impl<const N: usize> std::ops::Add for Vector<N> {
         Self(std::array::from_fn(|i| self[i] + other[i]))
     }
 }
+impl<const N: usize> std::ops::AddAssign for Vector<N> {
+    fn add_assign(&mut self, other: Self) {
+        *self = Self(std::array::from_fn(|i| self[i] + other[i]))
+    }
+}
 impl<const N: usize> std::ops::Sub for Vector<N> {
     type Output = Self;
     ///subtract every component together
@@ -80,11 +85,22 @@ impl<const N: usize> std::ops::Mul for Vector<N> {
         Self(std::array::from_fn(|i| self[i] * other[i]))
     }
 }
+impl<const N: usize> std::ops::MulAssign for Vector<N> {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = Self(std::array::from_fn(|i| self[i] * rhs[i]))
+    }
+}
 impl<const N: usize> std::ops::Div for Vector<N> {
     type Output = Self;
     ///divide every component together
     fn div(self, other: Self) -> Self {
         Self(std::array::from_fn(|i| self[i] / other[i]))
+    }
+}
+impl<const N: usize> std::ops::Neg for Vector<N> {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Self(std::array::from_fn(|i| -self[i]))
     }
 }
 
@@ -97,6 +113,10 @@ impl<const N: usize> std::ops::Mul<f32> for Vector<N> {
 }
 
 impl Vector4 {
+    pub const FRONT: Self = vector!(0.0, 0.0, 1.0, 1.0);
+    pub const UP: Self    = vector!(0.0, 1.0, 0.0, 1.0);
+    pub const RIGHT: Self = vector!(1.0, 0.0, 0.0, 1.0);
+
     pub fn scaled(self, scale: Vector3) -> Self {
         Mat4::from_arrays([
             [scale[0], 0.0, 0.0, 0.0],
@@ -121,6 +141,10 @@ impl Vector4 {
 }
 
 impl Vector3 {
+    pub const FRONT: Self = vector!(0.0, 0.0, 1.0);
+    pub const UP: Self    = vector!(0.0, 1.0, 0.0);
+    pub const RIGHT: Self = vector!(1.0, 0.0, 0.0);
+
     pub fn scaled(self, scale: Vector3) -> Self {
         Mat3::from_arrays([
             [scale[0], 0.0, 0.0],
@@ -137,5 +161,13 @@ impl Vector3 {
     }
     pub fn rotated(self, rot: Quaternion) -> Self {
         Mat3::from(rot) * self
+    }
+
+    pub fn crossed(&self, rhs: &Self) -> Self {
+        Self::new([
+            self[1]*rhs[2] - self[2]*rhs[1],
+            self[2]*rhs[0] - self[0]*rhs[2],
+            self[0]*rhs[1] - self[1]*rhs[0],
+        ])
     }
 }

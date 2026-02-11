@@ -1,4 +1,4 @@
-use crate::{math::{Mat4, Vector3, Vector}, vector};
+use crate::{game::GameObject, math::{Mat4, Vector, Vector3}, vector};
 
 pub struct Camera {
     world_position: Vector3,
@@ -42,7 +42,27 @@ impl Camera {
         self.perspective = crate::math::perspective(self.fov, self.aspect_ratio, self.near, self.far)
     }
 
-    //pub fn look_at()
+    pub fn look_at(&self, target: Vector3) -> Mat4 {
+        let start = self.world_position;
+        
+        let forward = (target-start).normalized();
+        let right = (forward.crossed(&Vector3::UP)).normalized();
+        let up = right.crossed(&forward);
+
+        Mat4::from_arrays([
+            [right[0],    right[1],    right[2],    -right.dot(&start)  ],
+            [up[0],       up[1],       up[2],       -up.dot(&start)     ],
+            [-forward[0], -forward[1], -forward[2], forward.dot(&start)],
+            [0.0,           0.0,           0.0,           1.0]
+        ])
+    }
+}
+
+impl GameObject for Camera {
+    fn get_mesh(&self) -> Option<Box<&dyn super::mesh::Mesh>> { None }
+    fn get_position(&self) -> Vector3 { self.world_position }
+    fn set_position(&mut self, pos: Vector3) { self.world_position = pos }
+    fn change_position(&mut self, offset: Vector3) { self.world_position += offset }
 }
 
 impl Default for Camera {
