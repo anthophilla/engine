@@ -43,9 +43,9 @@ impl Camera {
     }
 
     pub fn look_at(&self, target: Vector3) -> Mat4 {
-        let start = self.world_position;
+        let start = self.world_position * vector!(-1.0, 1.0, -1.0);
         
-        let forward = (target-start).normalized();
+        let forward = target.normalized();
         let right = (forward.crossed(&Vector3::UP)).normalized();
         let up = right.crossed(&forward);
 

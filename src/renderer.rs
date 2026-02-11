@@ -18,8 +18,7 @@ use shaders::{Shader, ShaderProgram, ShaderType};
 
 use crate::{
     game::{
-        scene::Scene,
-        settings::Settings
+        GameObject, scene::Scene, settings::Settings
     },
     math::{Color, Mat4, Vector, Vector3},
     vector
@@ -107,8 +106,8 @@ impl Renderer {
         program.use_program();
 
         program.perspective.setmat4(camera.perspective);
-        //program.perspective.setmat4(Mat4::IDENTITY);
-        program.view.setmat4(camera.look_at(vector!(0.5, 0.0, -1.0)));
+        // program.camera_pos.setf3(&camera.get_position());
+        program.view.setmat4(camera.look_at(-Vector3::FRONT));
 
         let mut mesh_func = |mesh: &dyn Mesh| mesh.draw(&program.model_transform, &program.model_rotation);
         scene.for_each_mesh(&mut mesh_func);

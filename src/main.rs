@@ -134,7 +134,7 @@ fn first_scene() -> Result<GameState, GameError> {
     ])?;
     
     let scene = StartScene{
-        player: StartPlayer::new(vector!(0.0, 0.0, 0.0), 0.5),
+        player: StartPlayer::new(vector!(0.0, 0.0, 0.0), 1.5),
         cubes: vec![cube1, cube2]
     };
 
