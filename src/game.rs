@@ -14,8 +14,6 @@ use crate::{
         settings::Settings
     },
     renderer::{RenderError, Renderer, Window},
-    math::Vector,
-    vector
 };
 
 //any error that is not engines
@@ -67,40 +65,52 @@ impl Game {
     }
 
     pub fn start(
-        &mut self,
-        start_functions: Vec<fn(&mut GameState, &Input) -> Result<GameAction, GameError>>,
-        update_functions: Vec<fn(&mut GameState, &Input) -> Result<GameAction, GameError>>
+        &mut self, start_state: GameState
     ) -> Result<(), Crash> {
         self.window.start(glfw::CursorMode::Normal);
-
-        //run start functions
-        for fun in &start_functions {
-            let action = fun(&mut self.state, &self.window.input)?;
-            self.handle_action(action);
+        self.change_state(start_state)?;
+        
+        //execute start function
+        for action in self.get_mut_scene().start()? {
+            self.handle_action(action)?;
         }
 
         while !self.window.should_close() {
             let input_action = self.window.process_input()?;
-            self.handle_action(input_action);
+            self.handle_action(input_action)?;
 
-            //run update functions
-            for fun in &update_functions {
-                let action = fun(&mut self.state, &self.window.input)?;
-                self.handle_action(action);
+            let input = &mut self.window.input;
+            
+            //bro....
+            //execute update functions
+            let actions = {
+                let scene: &mut dyn Scene = match &mut self.state {
+                    GameState::Menu(scene) => scene.as_mut(),
+                    GameState::Game(scene) => scene.as_mut(),
+                    GameState::Loading(scene) => scene.as_mut(),
+                };
+                scene.update(&input)?
+            };
+
+            for action in actions {
+                self.handle_action(action)?;
             }
-
-            let scene= self.get_scene();
-
-            self.renderer.render(scene)?;
+            
+            self.renderer.render(self.get_scene())?;
             self.window.swap_buffers()
         }
         Ok(())
     }
 
-    fn handle_action(&mut self, action: GameAction) {
+    fn handle_action(&mut self, action: GameAction) -> Result<(), Crash> {
         match action {
             GameAction::Exit => self.quit(),
-            GameAction::ChangeGameState(state) => self.state = state,
+            GameAction::ChangeGameState(state) => {
+                self.state = state;
+                for action in self.get_mut_scene().start()? {
+                    self.handle_action(action)?;
+                }
+            },
             GameAction::Resize(x, y) => {
                 self.get_mut_scene()
                 .get_mut_camera()
@@ -109,6 +119,12 @@ impl Game {
             },
             GameAction::None => {},
         }
+        Ok(())
+    }
+
+    fn change_state(&mut self, state: GameState) -> Result<(), Crash> {
+        self.state = state;
+        Ok(())
     }
     
     fn get_scene(&self) -> &dyn Scene {

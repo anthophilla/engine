@@ -27,6 +27,7 @@ pub struct Input {
     pub right: Axis,
 
     pub exit: (f32, Key),
+    pub delta_time: f32,
 }
 
 impl Input {
@@ -41,10 +42,21 @@ impl Input {
                     k if k == self.forward.1 => self.forward.0 = 1.0,
                     k if k == self.forward.2 => self.forward.0 = -1.0,
 
-                    k if k == self.right.1 => self.right.0 = 1.0,                    k if k == self.forward.1 => self.forward.0 = 1.0,
+                    k if k == self.right.1 => self.right.0 = 1.0,
                     k if k == self.right.2 => self.right.0 = -1.0,
                     
                     k if k == self.exit.1 => self.exit.0 = 1.0,
+
+                    _ => {},
+                }},
+                WindowEvent::Key(key,_ , glfw::Action::Release, _) => {match key {
+                    k if k == self.forward.1 => self.forward.0 = 0.0,
+                    k if k == self.forward.2 => self.forward.0 = 0.0,
+
+                    k if k == self.right.1 => self.right.0 = 0.0,
+                    k if k == self.right.2 => self.right.0 = 0.0,
+                    
+                    k if k == self.exit.1 => self.exit.0 = 0.0,
 
                     _ => {},
                 }},
@@ -60,7 +72,8 @@ impl Input {
             forward: (0.0, settings.forward.0, settings.forward.1),
             right: (0.0, settings.right.0, settings.right.1),
 
-            exit: (0.0, settings.exit)
+            exit: (0.0, settings.exit),
+            delta_time: 0.0,
         }
     }
 }

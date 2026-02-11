@@ -1,4 +1,4 @@
-use crate::{game::GameObject, renderer::{Camera, mesh::{Mesh, StaticMesh}}};
+use crate::{game::{GameAction, GameError, GameObject, Input}, renderer::{Camera, mesh::{Mesh, StaticMesh}}};
 
 pub trait Scene {
     //fn get_static_meshes(&self) -> Vec<StaticMesh>;
@@ -30,6 +30,11 @@ pub trait Scene {
     //fn get_meshes(&self) -> Vec<Box<dyn Mesh>>;
     fn get_current_camera(&self) -> &Camera;
     fn get_mut_camera(&mut self) -> &mut Camera;
+
+    ///function executed first after loading the scene
+    fn start(&mut self) -> Result<Vec<GameAction>, GameError>;
+    ///function ran every game update
+    fn update(&mut self, input: &Input) -> Result<Vec<GameAction>, GameError>;
 }
 
 pub trait MenuScene: Scene {}
@@ -52,6 +57,11 @@ impl Scene for EmptyScene {
     fn get_game_objects(&self) -> Vec<Box<&(dyn GameObject + 'static)>> {
         vec![]
     }
-    //fn get_static_meshes(&self) -> Vec<St> { vec![] }
+    fn start(&mut self) -> Result<Vec<GameAction>, GameError> {
+        Ok(vec![])
+    }
+    fn update(&mut self, _: &Input) -> Result<Vec<GameAction>, GameError> {
+        Ok(vec![])
+    }
 }
 impl LoadingScene for EmptyScene {}

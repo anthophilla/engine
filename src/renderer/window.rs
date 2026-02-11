@@ -25,6 +25,8 @@ pub struct Window {
     pub window: glfw::PWindow,
     pub events: GlfwReceiver<(f64, WindowEvent)>,
     pub input: Input,
+    ///for delta time
+    last_time: f64,
 }
 impl Window {
     pub fn new(settings: &Settings) -> Result<Self, WindowError> {
@@ -44,7 +46,7 @@ impl Window {
 
         let input = Input::from_settings(&settings.input_settings);
 
-        Ok(Self { glfw, window, events, input })
+        Ok(Self { glfw, window, events, input, last_time: 0.0 })
     }
 
     pub fn start(&mut self, cursor_mode: glfw::CursorMode) {
@@ -64,8 +66,15 @@ impl Window {
     pub fn should_close(&self) -> bool { self.window.should_close() }
     pub fn make_current(&mut self) { self.window.make_current(); }
 
+    fn set_delta_time(&mut self) {
+        let current_time = self.glfw.get_time();
+        self.input.delta_time = (self.last_time-current_time) as f32;
+        self.last_time = current_time;
+    }
+
     pub fn process_input(&mut self) -> Result<GameAction, Crash> {
         self.glfw.poll_events();
+        self.set_delta_time();
         Ok(self.input.process(&self.events)?) 
     }
 }
