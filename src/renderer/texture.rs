@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use image::{GenericImageView, ImageReader};
+use image::ImageReader;
 
 use crate::renderer::RenderError;
 

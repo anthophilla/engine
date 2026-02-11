@@ -116,13 +116,6 @@ impl Scene for StartScene {
 }
 impl MenuScene for StartScene {}
 
-//check if the game should quit
-fn quit(_: &mut GameState, input: &Input) -> Result<GameAction, GameError> {
-    if input.exit.0 == 1.0 { return Ok(GameAction::Exit) }
-
-    Ok(GameAction::None)
-}
-
 fn first_scene() -> Result<GameState, GameError> {
     let cube1 = Cube::new(vector!(0.0, 1.0, -2.0), vec![
         Texture::from_file("src/textures/awesomeface.png")?,

@@ -1,8 +1,6 @@
-use std::arch::x86_64;
-
 use glfw::{Key, WindowEvent};
 
-use crate::{Crash, game::{GameAction, settings::InputSettings}, renderer::window::Window};
+use crate::{Crash, game::{GameAction, settings::InputSettings}};
 
 // enum KeyAlias {
 //     W,

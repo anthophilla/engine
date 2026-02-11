@@ -12,15 +12,15 @@ pub use texture::Texture;
 
 use std::mem::offset_of;
 
-use mesh::{StaticMesh, Mesh};
+use mesh::Mesh;
 use uniform::Uniform;
 use shaders::{Shader, ShaderProgram, ShaderType};
 
 use crate::{
     game::{
-        GameObject, scene::Scene, settings::Settings
+        scene::Scene, settings::Settings
     },
-    math::{Color, Mat4, Vector, Vector3},
+    math::{Color, Vector, Vector3},
     vector
 };
 

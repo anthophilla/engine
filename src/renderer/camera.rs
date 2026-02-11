@@ -42,6 +42,7 @@ impl Camera {
         self.perspective = crate::math::perspective(self.fov, self.aspect_ratio, self.near, self.far)
     }
 
+    ///returns lookat matrix in worldspace
     pub fn look_at(&self, target: Vector3) -> Mat4 {
         let start = self.world_position * vector!(-1.0, 1.0, -1.0);
         
