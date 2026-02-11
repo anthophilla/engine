@@ -17,7 +17,10 @@ use uniform::Uniform;
 use shaders::{Shader, ShaderProgram, ShaderType};
 
 use crate::{
-    game::{Scene, Settings},
+    game::{
+        scene::Scene,
+        settings::Settings
+    },
     math::{Color, Mat4, Vector, Vector3},
     vector
 };
@@ -90,7 +93,7 @@ impl Renderer {
         })
     }
 
-    pub fn render(&self, scene: &Box<dyn Scene>) -> Result<(), RenderError> {
+    pub fn render(&self, scene: &dyn Scene) -> Result<(), RenderError> {
         let camera = scene.get_current_camera();
         
         self.clear_color(BACKGROUND_COLOR);

@@ -1,6 +1,13 @@
 use glfw::{Context, GlfwReceiver, WindowEvent};
 
-use crate::{Crash, game::{GameAction, Input, Settings}};
+use crate::{
+    Crash,
+    game::{
+        GameAction,
+        Input,
+        settings::Settings
+    }
+};
 
 pub enum WindowError{
     InitError,

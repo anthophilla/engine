@@ -1,20 +1,19 @@
-mod input;
-mod settings;
-mod player;
-mod scene;
-mod object;
+pub mod input;
+pub mod settings;
+pub mod player;
+pub mod scene;
+pub mod object;
 
 pub use input::Input;
-pub use settings::{Settings, InputSettings};
-pub use player::Player;
-pub use scene::Scene;
 pub use object::GameObject;
-
-use scene::EmptyScene;
 
 use crate::{
     Crash,
-    renderer::{Camera, RenderError, Renderer, Window, mesh::Mesh},
+    game::{
+        scene::{GameScene, LoadingScene, MenuScene, EmptyScene, Scene},
+        settings::Settings
+    },
+    renderer::{RenderError, Renderer, Window},
     math::Vector,
     vector
 };
@@ -31,10 +30,10 @@ impl From<RenderError> for GameError {
 }
 
 pub enum GameState {
-    Menu(Box<dyn Scene>),
+    Menu(Box<dyn MenuScene>),
     //Bad name
-    Game(Box<dyn Scene>),
-    Loading(Box<dyn Scene>),
+    Game(Box<dyn GameScene>),
+    Loading(Box<dyn LoadingScene>),
 }
 
 pub enum GameAction {
@@ -112,18 +111,19 @@ impl Game {
         }
     }
     
-    fn get_scene(&self) -> &Box<dyn Scene> {
+    fn get_scene(&self) -> &dyn Scene {
+        //bad syntax
         match &self.state {
-            GameState::Menu(scene) |
-            GameState::Game(scene) |
-            GameState::Loading(scene) => scene,
+            GameState::Menu(scene) => scene.as_ref(),
+            GameState::Game(scene) => scene.as_ref(),
+            GameState::Loading(scene) => scene.as_ref(),
         }
     }
-    fn get_mut_scene(&mut self) -> &mut Box<dyn Scene> {
+    fn get_mut_scene(&mut self) -> &mut dyn Scene {
         match &mut self.state {
-            GameState::Menu(scene) |
-            GameState::Game(scene) |
-            GameState::Loading(scene) => scene,
+            GameState::Menu(scene) => scene.as_mut(),
+            GameState::Game(scene) => scene.as_mut(),
+            GameState::Loading(scene) => scene.as_mut(),
         }
     }
 

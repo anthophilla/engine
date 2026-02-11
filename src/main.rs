@@ -1,7 +1,18 @@
 use engine::{
     Crash,
     game::{
-        Game, GameAction, GameError, GameObject, GameState, Input, InputSettings, Player, Scene, Settings
+        Game,
+        GameAction,
+        GameError,
+        GameObject,
+        GameState,
+        Input,
+        settings::{
+            InputSettings,
+            Settings, 
+        },
+        player::Player,
+        scene::{MenuScene, Scene},
     },
     math::{Vector, Vector3},
     renderer::{Texture, WindowMode, mesh::StaticMesh},
@@ -56,6 +67,7 @@ impl Scene for StartScene {
         return result
     }
 }
+impl MenuScene for StartScene {}
 
 //check if the game should quit
 fn quit(_: &mut GameState, input: &Input) -> Result<GameAction, GameError> {
@@ -65,19 +77,22 @@ fn quit(_: &mut GameState, input: &Input) -> Result<GameAction, GameError> {
 }
 
 fn first_scene(_: &mut GameState, _: &Input) -> Result<GameAction, GameError> {
-    let textures = vec![
+    let cube1 = Cube::new(vector!(0.0, 1.0, -2.0), vec![
         Texture::from_file("src/textures/awesomeface.png")?,
         Texture::from_file("src/textures/container.jpg")?,
-    ];
-    let cube = Cube::new(vector!(0.0, 0.0, -2.0), textures)?;
+    ])?;
+    let cube2 = Cube::new(vector!(0.0, -1.0, -2.0), vec![
+        Texture::from_file("src/textures/awesomeface.png")?,
+        Texture::from_file("src/textures/container.jpg")?,
+    ])?;
     
     let scene = StartScene{
         player: Player::default(),
-        cubes: vec![cube]
+        cubes: vec![cube1, cube2]
     };
 
     Ok(GameAction::ChangeGameState(
-        GameState::Game(
+        GameState::Menu(
             Box::new(scene)
         )
     ))

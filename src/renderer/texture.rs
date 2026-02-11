@@ -4,6 +4,7 @@ use image::{GenericImageView, ImageReader};
 
 use crate::renderer::RenderError;
 
+// #[derive(Clone, Copy)]
 pub struct Texture {
     texture: u32,
     width: u32,

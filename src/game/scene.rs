@@ -32,6 +32,10 @@ pub trait Scene {
     fn get_mut_camera(&mut self) -> &mut Camera;
 }
 
+pub trait MenuScene: Scene {}
+pub trait GameScene: Scene {}
+pub trait LoadingScene: Scene {}
+
 pub struct EmptyScene(Camera);
 impl EmptyScene {
     pub fn new() -> Self {
@@ -50,3 +54,4 @@ impl Scene for EmptyScene {
     }
     //fn get_static_meshes(&self) -> Vec<St> { vec![] }
 }
+impl LoadingScene for EmptyScene {}
