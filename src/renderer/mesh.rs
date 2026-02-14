@@ -1,7 +1,7 @@
 // this code needs a good refactor
 
 use crate::{
-    math::{Color, Mat4, Vector, Vector3},
+    math::{Color, Mat4, Quaternion, Vector, Vector3},
     renderer::{
         RenderError, Vertex, buffers::{ElementBufferObject, VertexArrayObject, VertexBufferObject}, texture::Texture, uniform::Uniform
     },
@@ -13,7 +13,7 @@ use crate::{
 // }
 
 pub trait Mesh {
-    fn draw(&self, transform_uniform: &Uniform, rot_uniform: &Uniform);
+    fn draw(&self, rot_uniform: &Uniform, trans_uniform: &Uniform);
 }
 
 // pub struct MeshPlaceHolder {
@@ -30,6 +30,7 @@ pub trait Mesh {
 
 pub struct StaticMesh {
     world_position: Vector3,
+    rotation: Quaternion,
 
     vao: VertexArrayObject,
     vbo: VertexBufferObject,
@@ -41,7 +42,7 @@ pub struct StaticMesh {
 }
 
 impl StaticMesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<i32>, world_position: Vector3, textures: Vec<Texture>) -> Result<Self, RenderError> {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<i32>, world_position: Vector3, rotation: Quaternion, textures: Vec<Texture>) -> Result<Self, RenderError> {
         let vao = VertexArrayObject::new()?;
         let vbo = VertexBufferObject::new()?;
         vao.bind();
@@ -58,14 +59,22 @@ impl StaticMesh {
 
         Ok(Self{
             world_position,
+            rotation,
             vao, vbo, ebo,
             textures,
             indices_count
         })
     }
 
+    pub fn set_position(&mut self, pos: Vector3) {
+        self.world_position = pos;
+    }
+    pub fn set_rotation(&mut self, rot: Quaternion) {
+        self.rotation = rot;
+    }
+
     /// creates a basic triangle with messed up uv's!!
-    pub fn triangle((x, y): (f32, f32), world_position: Vector3, color: Color, textures: Vec<Texture>) -> Result<Self, RenderError> {
+    pub fn triangle((x, y): (f32, f32), world_position: Vector3, rotation: Quaternion, color: Color, textures: Vec<Texture>) -> Result<Self, RenderError> {
         let vertices = vec![
             Vertex::from_vectors(vector!(-x/2.0, -y/2.0, 0.0), color, vector!(-1.0, -1.0)),
             Vertex::from_vectors(vector!(0.0, y/2.0, 0.0), color, vector!(0.0, 1.0)),
@@ -74,10 +83,10 @@ impl StaticMesh {
 
         let indices = vec![0, 1, 2];
         
-        Ok(Self::new(vertices, indices, world_position, textures)?)
+        Ok(Self::new(vertices, indices, world_position, rotation, textures)?)
     }
 
-    pub fn rectangle((x, y): (f32, f32), world_position: Vector3, color: Color, textures: Vec<Texture>) -> Result<Self, RenderError> {
+    pub fn rectangle((x, y): (f32, f32), world_position: Vector3, rotation: Quaternion, color: Color, textures: Vec<Texture>) -> Result<Self, RenderError> {
         let vertices = vec![
             Vertex::from_vectors(vector!(x, y, 0.0), color, vector!(1.0, 1.0)),
             Vertex::from_vectors(vector!(-x, y, 0.0), color, vector!(0.0, 1.0)),
@@ -86,11 +95,11 @@ impl StaticMesh {
         ];
         let indices = vec![1, 0, 2, 1, 2, 3];
 
-        Ok(Self::new(vertices, indices, world_position, textures)?)
+        Ok(Self::new(vertices, indices, world_position, rotation, textures)?)
     }
 
     //sorry in advance for the hardcode
-    pub fn cube((x, y, z): (f32, f32, f32), world_position: Vector3, color: Color, textures: Vec<Texture>) -> Result<Self, RenderError> {
+    pub fn cube((x, y, z): (f32, f32, f32), world_position: Vector3, rotation: Quaternion, color: Color, textures: Vec<Texture>) -> Result<Self, RenderError> {
         let vertices = vec![
             // back face
             Vertex::from_vectors(vector!(-x, -y, -z), color, vector!(0.0, 0.0)),
@@ -149,15 +158,15 @@ impl StaticMesh {
             30, 31, 32, 33, 34, 35,
         ];
         
-        Ok(Self::new(vertices, indices, world_position, textures)?)
+        Ok(Self::new(vertices, indices, world_position, rotation, textures)?)
     }
 }
 impl Mesh for StaticMesh {
-    fn draw(&self, transform_uniform: &Uniform, rot_uniform: &Uniform) {
+    fn draw(&self, rot_uniform: &Uniform, trans_uniform: &Uniform) {
         for (i, text) in self.textures.iter().enumerate() { text.bind(i as u32); }
 
-        transform_uniform.setf3(&self.world_position);
-        rot_uniform.setmat4(Mat4::IDENTITY);
+        trans_uniform.setmat4(Mat4::translation_mat(self.world_position));
+        rot_uniform.setmat4(Mat4::from(self.rotation));
 
         self.vao.bind();
         self.ebo.bind();

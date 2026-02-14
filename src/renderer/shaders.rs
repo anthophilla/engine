@@ -80,7 +80,7 @@ pub struct ShaderProgram {
     pub view:        Uniform,
     
     pub model_transform: Uniform,
-    pub model_rotation:  Uniform,
+    pub model_rot:  Uniform,
 
     pub texture0: Uniform,
     pub texture1: Uniform,
@@ -123,7 +123,7 @@ impl ShaderProgram {
             view: Uniform::from_name("view\0", program)?,
 
             model_transform: Uniform::from_name("model_trans\0", program)?,
-            model_rotation: Uniform::from_name("model_rot\0", program)?,
+            model_rot: Uniform::from_name("model_rot\0", program)?,
 
             texture0: Uniform::from_name("texture1\0", program)?,
             texture1: Uniform::from_name("texture2\0", program)?,

@@ -109,7 +109,7 @@ impl Renderer {
         // program.camera_pos.setf3(&camera.get_position());
         program.view.setmat4(camera.look_at(-Vector3::FRONT));
 
-        let mut mesh_func = |mesh: &dyn Mesh| mesh.draw(&program.model_transform, &program.model_rotation);
+        let mut mesh_func = |mesh: &dyn Mesh| mesh.draw(&program.model_rot, &program.model_transform);
         scene.for_each_mesh(&mut mesh_func);
 
         Ok(())

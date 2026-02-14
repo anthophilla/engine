@@ -6,7 +6,7 @@ use engine::{
             Settings, 
         }
     },
-    math::{Vector, Vector3},
+    math::{Quaternion, Vector, Vector3},
     renderer::{Camera, Texture, WindowMode, mesh::StaticMesh},
     vector
 };
@@ -14,19 +14,22 @@ use engine::{
 struct Cube {
     mesh: StaticMesh,
     position: Vector3,
+    rotation: Quaternion,
 }
 impl Cube {
-    fn new(position: Vector3, textures: Vec<Texture>) -> Result<Self, GameError> {
+    fn new(position: Vector3, rotation: Quaternion, textures: Vec<Texture>) -> Result<Self, GameError> {
         let mesh = StaticMesh::cube(
             (0.5, 0.5, 0.5),
             position,
+            rotation,
             vector!(1.0, 1.0, 1.0, 1.0),
             textures
         ).map_err(|_| GameError::Other("TODO! mesh error".to_string()))?;
 
         Ok(Self {
             mesh,
-            position
+            position,
+            rotation,
         })
     }
 }
@@ -35,7 +38,15 @@ impl GameObject for Cube {
         Some(Box::new(&self.mesh))
     }
     fn get_position(&self) -> Vector3 { self.position }
-    fn set_position(&mut self, pos: Vector3) { self.position = pos }
+    fn set_position(&mut self, pos: Vector3) {
+        self.position = pos;
+        self.mesh.set_position(self.position);
+    }
+    fn get_rotation(&self) -> engine::math::Quaternion { self.rotation }
+    fn set_rotation(&mut self, rotation: Quaternion) {
+        self.rotation = rotation;
+        self.mesh.set_rotation(self.rotation);
+    }
 }
 
 struct StartPlayer {
@@ -47,6 +58,7 @@ impl StartPlayer {
     fn new(world_position: Vector3, speed: f32) -> Self {
         let camera = Camera::new(
             world_position,
+            Quaternion::IDENTITY,
             90.0,
             1.0,
             100.0
@@ -111,17 +123,21 @@ impl Scene for StartScene {
     fn update(&mut self, input: &Input) -> Result<Vec<GameAction>, GameError> {
         let mut actions: Vec<GameAction> = vec![];
         actions.extend(self.input(input)?);
+
+        self.cubes[0].rotate(Quaternion::from_angle_vect(5.0*input.delta_time, vector!(0.5, 0.5, 0.5)));
+
         return Ok(actions)
     }
 }
 impl MenuScene for StartScene {}
 
 fn first_scene() -> Result<GameState, GameError> {
-    let cube1 = Cube::new(vector!(0.0, 1.0, -2.0), vec![
+    let cube1 = Cube::new(vector!(0.0, 1.0, -2.0), Quaternion::IDENTITY,
+    vec![
         Texture::from_file("src/textures/awesomeface.png")?,
         Texture::from_file("src/textures/container.jpg")?,
     ])?;
-    let cube2 = Cube::new(vector!(0.0, -1.0, -2.0), vec![
+    let cube2 = Cube::new(vector!(0.0, -1.0, -2.0), Quaternion::IDENTITY,vec![
         Texture::from_file("src/textures/awesomeface.png")?,
         Texture::from_file("src/textures/container.jpg")?,
     ])?;

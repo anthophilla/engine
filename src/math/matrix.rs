@@ -6,6 +6,7 @@ pub struct Matrix<const X: usize, const Y: usize>([[f32; X]; Y]);
 pub type Mat3 = Matrix<3, 3>;
 pub type Mat4 = Matrix<4, 4>;
 
+/// Row-major matrix
 impl<const X: usize, const Y: usize> Matrix<X, Y> {
     pub const fn from_arrays(arr: [[f32; X]; Y]) -> Self { Self(arr) }
 
@@ -92,7 +93,7 @@ impl Mat4 {
             [1.0, 0.0, 0.0, v[0]],
             [0.0, 1.0, 0.0, v[1]],
             [0.0, 0.0, 1.0, v[2]],
-            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
         ])
     }
 }

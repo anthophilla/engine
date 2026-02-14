@@ -3,6 +3,14 @@ use crate::{
     vector
 };
 
+// #[macro_export]
+// macro_rules! quat {
+//     ($angle: expr, $x: expr, $y: expr, $z: expr) => {
+//         Quaternion::from_angle_vect(angle, Vector3::new([x, y, z]))
+//     };
+// }
+
+#[derive(Clone, Copy)]
 pub struct Quaternion {
     pub w: f32,
     pub x: f32,
@@ -10,6 +18,7 @@ pub struct Quaternion {
     pub z: f32,
 }
 impl Quaternion {
+    pub const IDENTITY: Self = Self {w: 1.0, x: 0.0, y: 0.0, z: 0.0};
     //bad name
     /// creates a quaternion from axes and one angle NOT RADIAN
     pub fn from_angle_vect(angle: f32, v: Vector3) -> Self {
@@ -46,6 +55,13 @@ impl std::ops::Mul for Quaternion {
         }
     }
 }
+
+// impl std::ops::Mul<Vector4> for Quaternion {
+//     type Output = Mat4;
+//     fn mul(self, rhs: Vector4) -> Self::Output {
+//         Mat4::from(self)+rhs
+//     }
+// }
 
 impl From<Quaternion> for (f32, f32, f32, f32) {
     /// (w, x, y, z)

@@ -9,13 +9,15 @@ out vec2 texCoord;
 uniform mat4 perspective;
 uniform mat4 view;
 
-uniform vec3 model_trans;
+uniform mat4 model_trans;
 uniform mat4 model_rot;
 
 void main() {
-    vec3 pos = aPos.xyz + model_trans.xyz;
-    gl_Position = perspective * view * model_rot * vec4(pos, 1.0);
-    //gl_Position = model_rot*vec4(pos, 1.0);
+    //vec3 pos = aPos.xyz + model_trans.xyz;
+    //vec4 rotated = model_rot * vec4(pos, 1.0);
+    //gl_Position = perspective * view * rotated;
+
+    gl_Position = perspective * view * (model_trans * model_rot) * vec4(aPos, 1.0);
     vertexColor = aColor;
     texCoord = aTexCoord;
 }

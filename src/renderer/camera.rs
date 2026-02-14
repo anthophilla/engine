@@ -1,7 +1,8 @@
-use crate::{game::GameObject, math::{Mat4, Vector, Vector3}, vector};
+use crate::{game::GameObject, math::{Mat4, Quaternion, Vector, Vector3}, vector};
 
 pub struct Camera {
     world_position: Vector3,
+    rotation: Quaternion,
 
     fov: f32,
     aspect_ratio: f32,
@@ -13,13 +14,14 @@ pub struct Camera {
 impl Camera {
     pub fn new(
         world_position: Vector3,
-
+        rotation: Quaternion,
         fov: f32,
         aspect_ratio: f32,
         far: f32,
     ) -> Self{
         Self {
             world_position,
+            rotation,
             fov,
             aspect_ratio,
             near: 0.1,
@@ -64,10 +66,21 @@ impl GameObject for Camera {
     fn get_position(&self) -> Vector3 { self.world_position }
     fn set_position(&mut self, pos: Vector3) { self.world_position = pos }
     fn change_position(&mut self, offset: Vector3) { self.world_position += offset }
+    fn get_rotation(&self) -> Quaternion { self.rotation }
+    fn set_rotation(&mut self, rotation: Quaternion) { self.rotation = rotation; }
+    fn rotate(&mut self, offset: Quaternion) {
+        self.rotation = self.rotation*offset;
+    }
 }
 
 impl Default for Camera {
     fn default() -> Self {
-        Self::new(vector!(0.0, 0.0, 0.0), 90.0, 1.0, 100.0)
+        Self::new(
+            vector!(0.0, 0.0, 0.0),
+            Quaternion::IDENTITY,
+            90.0,
+            1.0,
+            100.0
+        )
     }
 }
