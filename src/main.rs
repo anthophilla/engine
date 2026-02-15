@@ -6,7 +6,7 @@ use engine::{
             Settings, 
         }
     },
-    math::{Quaternion, Vector, Vector3},
+    math::{Mat3, Quaternion, Vector, Vector3},
     renderer::{Camera, Texture, WindowMode, mesh::StaticMesh},
     vector
 };
@@ -51,6 +51,7 @@ impl GameObject for Cube {
 
 struct StartPlayer {
     camera: Camera,
+    rotation: Quaternion,
     world_position: Vector3,
     speed: f32,
 }
@@ -58,12 +59,17 @@ impl StartPlayer {
     fn new(world_position: Vector3, speed: f32) -> Self {
         let camera = Camera::new(
             world_position,
-            Quaternion::IDENTITY,
+            Quaternion::from_angle_vect(0.0, vector!(1.0, 1.0, 1.0)),
             90.0,
             1.0,
             100.0
         );
-        Self { camera, world_position, speed }
+        Self {
+            camera,
+            rotation: Quaternion::IDENTITY,
+            world_position,
+            speed
+        }
     }
     fn get_speed(&self) -> f32 {
         self.speed
@@ -75,6 +81,10 @@ impl Player for StartPlayer {
     fn translate(&mut self, trans: Vector3) {
         self.world_position += trans;
         self.camera.set_position(self.world_position);
+    }
+    fn rotate(&mut self, rot: Quaternion) {
+        self.rotation = self.rotation*rot;
+        self.camera.set_rotation(self.rotation);
     }
 }
 

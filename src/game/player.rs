@@ -1,4 +1,4 @@
-use crate::{math::Vector3, renderer::Camera,};
+use crate::{math::{Quaternion, Vector3}, renderer::Camera,};
 
 // pub struct Player {
 //     pub camera: Camera,
@@ -25,4 +25,5 @@ pub trait Player {
     fn get_mut_camera(&mut self) -> &mut Camera;
 
     fn translate(&mut self, trans: Vector3);
+    fn rotate(&mut self, rot: Quaternion);
 }

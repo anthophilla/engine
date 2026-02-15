@@ -1,4 +1,4 @@
-use crate::{game::GameObject, math::{Mat4, Quaternion, Vector, Vector3}, vector};
+use crate::{game::GameObject, math::{Mat3, Mat4, Quaternion, Vector, Vector3}, vector};
 
 pub struct Camera {
     world_position: Vector3,
@@ -45,10 +45,10 @@ impl Camera {
     }
 
     ///returns lookat matrix in worldspace
-    pub fn look_at(&self, target: Vector3) -> Mat4 {
+    pub fn look_at(&self) -> Mat4 {
         let start = self.world_position * vector!(-1.0, 1.0, -1.0);
         
-        let forward = target.normalized();
+        let forward = (Mat3::from(self.rotation) * -Vector3::FRONT).normalized();
         let right = (forward.crossed(&Vector3::UP)).normalized();
         let up = right.crossed(&forward);
 
