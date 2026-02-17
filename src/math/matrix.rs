@@ -69,26 +69,12 @@ impl<const X: usize, const Y: usize> std::ops::Mul<Matrix<Y, X>> for Matrix<X, Y
         )
     }
 }
-// impl<const X: usize> std::ops::Mul<Vector<X>> for Matrix<X, X> {
-//     type Output = Vector<X>;
-//     fn mul(self, rhs: Vector<X>) -> Self::Output {
-//         Vector::new(
-//             std::array::from_fn(|y| {
-//                 (0..X)
-//                 .map(|x| {self[y][x] * rhs[x]})
-//                 .sum()
-//             })
-//         )
-//     }
-// }
 impl<const X: usize> std::ops::Mul<Vector<X>> for Matrix<X, X> {
     type Output = Vector<X>;
-    fn mul(self, other: Vector<X>) -> Vector<X> {
+    fn mul(self, rhs: Vector<X>) -> Self::Output {
         Vector::new(
             std::array::from_fn(|y| {
-                (0..X)
-                    .map(|x| {self.0[y][x] * other.0[x]})
-                    .sum()
+                (0..X).map(|x| {self[y][x]*rhs[x]}).sum()
             })
         )
     }

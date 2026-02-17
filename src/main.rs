@@ -59,7 +59,7 @@ impl StartPlayer {
     fn new(world_position: Vector3, speed: f32) -> Self {
         let camera = Camera::new(
             world_position,
-            Quaternion::from_angle_vect(vector!(0.0, 1.0, 1.0, 1.0)),
+            Quaternion::from_angle_vect(0.0, vector!(1.0, 1.0, 1.0)),
             90.0,
             1.0,
             100.0
@@ -105,15 +105,7 @@ impl StartScene {
             0.0,
             -(input.forward.0 * speed * delta)
         );
-        self.player.rotate(
-            Quaternion::from_angle_vect(
-                vector!(input.cursor_diff.1 * input.delta_time * input.mouse_sensitivity, 1.0, 0.0, 0.0)
-            ) *
-            Quaternion::from_angle_vect(
-                vector!(input.cursor_diff.0 * input.delta_time * input.mouse_sensitivity, 0.0, 1.0, 0.0)
-            ) 
-        );
-        self.player.translate(trans.rotated(self.player.rotation));
+        self.player.translate(trans);
 
         Ok(actions)
     }
@@ -137,16 +129,12 @@ impl Scene for StartScene {
         return result
     }
 
-    fn start(&mut self) -> Result<Vec<GameAction>, GameError> {
-        Ok(vec![
-            GameAction::SetCursorMode(glfw::CursorMode::Disabled)
-        ])
-    }
+    fn start(&mut self) -> Result<Vec<GameAction>, GameError> { Ok(vec![]) }
     fn update(&mut self, input: &Input) -> Result<Vec<GameAction>, GameError> {
         let mut actions: Vec<GameAction> = vec![];
         actions.extend(self.input(input)?);
 
-        self.cubes[0].rotate(Quaternion::from_angle_vect(vector!(5.0*input.delta_time, 0.5, 0.5, 0.5)));
+        self.cubes[0].rotate(Quaternion::from_angle_vect(5.0*input.delta_time, vector!(0.5, 0.5, 0.5)));
 
         return Ok(actions)
     }
