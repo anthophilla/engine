@@ -7,6 +7,7 @@ pub struct InputSettings {
     pub right: Keys,
 
     pub exit: glfw::Key,
+    pub mouse_sense: f32,
 }
 impl Default for InputSettings {
     fn default() -> Self {
@@ -15,6 +16,7 @@ impl Default for InputSettings {
             right: (glfw::Key::D, glfw::Key::A),
 
             exit: glfw::Key::Escape,
+            mouse_sense: 5.0,
         }
     }
 }
@@ -24,5 +26,5 @@ pub struct Settings {
     pub window_mode: WindowMode,
     pub game_title: &'static str,
 
-    pub input_settings: InputSettings
+    pub input_settings: InputSettings,
 }

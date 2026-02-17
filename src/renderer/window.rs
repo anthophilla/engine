@@ -75,6 +75,6 @@ impl Window {
     pub fn process_input(&mut self) -> Result<GameAction, Crash> {
         self.glfw.poll_events();
         self.set_delta_time();
-        Ok(self.input.process(&self.events)?) 
+        Ok(self.input.process(&self.events, self.window.get_cursor_pos())?) 
     }
 }

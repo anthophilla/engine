@@ -40,6 +40,7 @@ pub enum GameAction {
     ///use also for changing game scenes
     ChangeGameState(GameState),
     Resize(u32, u32),
+    SetCursorMode(glfw::CursorMode),
 }
 
 pub struct Game {
@@ -118,6 +119,7 @@ impl Game {
                 self.renderer.resize((x, y))
             },
             GameAction::None => {},
+            GameAction::SetCursorMode(mode) => self.window.set_cursor_mode(mode),
         }
         Ok(())
     }
