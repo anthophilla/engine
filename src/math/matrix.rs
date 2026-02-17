@@ -1,68 +1,86 @@
-// macro_rules! matrix {
-//     ($( $x:expr ), *) => {
-        
-//     };
-// }
-
 use crate::math::{Vector, Vector3};
-
-pub type Matrix3x3 = Matrix<3, 3>;
-pub type Matrix4x4 = Matrix<4, 4>;
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct Matrix<const X: usize, const Y: usize>([[f32; X]; Y]);
+
+pub type Mat3 = Matrix<3, 3>;
+pub type Mat4 = Matrix<4, 4>;
+
+/// Row-major matrix
 impl<const X: usize, const Y: usize> Matrix<X, Y> {
     pub const fn from_arrays(arr: [[f32; X]; Y]) -> Self { Self(arr) }
-    pub fn column_major(&self) -> [[f32; Y]; X] {
+
+    pub fn as_column_major(&self) -> [[f32; Y]; X] {
         let mut new = [[0.0; Y]; X];
         for y in 0..Y {
             for x in 0..X {
-                new[x][y] = self.0[y][x];
-            }
+                new[x][y] = self[y][x]
+            };
         };
         new
     }
 }
+impl<const X: usize, const Y: usize> std::ops::Index<usize> for Matrix<X, Y> {
+    type Output = [f32; X];
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
 impl<const X: usize, const Y: usize> std::ops::Add for Matrix<X, Y> {
     type Output = Self;
-    fn add(self, other: Self) -> Self {
+    fn add(self, rhs: Self) -> Self::Output {
         Self::from_arrays(
-            std::array::from_fn(|y| 
-                std::array::from_fn(|x| self.0[y][x] + other.0[y][x])
-        )
+            std::array::from_fn(
+                |y| std::array::from_fn(|x| self[y][x]+rhs[y][x])
+            )
         )
     }
 }
 impl<const X: usize, const Y: usize> std::ops::Sub for Matrix<X, Y> {
     type Output = Self;
-    fn sub(self, other: Self) -> Self {
+    fn sub(self, rhs: Self) -> Self::Output {
         Self::from_arrays(
-            std::array::from_fn(|y| 
-                std::array::from_fn(|x| self.0[y][x] - other.0[y][x])
-        )
+            std::array::from_fn(
+                |y| std::array::from_fn(|x| self[y][x]-rhs[y][x])
+            )
         )
     }
 }
 impl<const X: usize, const Y: usize> std::ops::Mul<f32> for Matrix<X, Y> {
     type Output = Self;
-    fn mul(self, other: f32) -> Self {
+    fn mul(self, rhs: f32) -> Self::Output {
         Self::from_arrays(
-            std::array::from_fn(|y| 
-                std::array::from_fn(|x| self.0[y][x] * other)
-        )
+            std::array::from_fn(
+                |y| std::array::from_fn(|x| self[y][x]*rhs)
+            )
         )
     }
 }
+
 impl<const X: usize, const Y: usize> std::ops::Mul<Matrix<Y, X>> for Matrix<X, Y> {
     type Output = Self;
-    fn mul(self, other: Matrix<Y, X>) -> Self {
-        Matrix::from_arrays(std::array::from_fn(|y|
-            std::array::from_fn(|x|
-                self.0[y][x] * other.0[x][y]
+
+    fn mul(self, rhs: Matrix<Y, X>) -> Self::Output {
+        Matrix::from_arrays(
+            std::array::from_fn(
+                |y| std::array::from_fn(|x| self[y][x]*rhs[x][y])
             )
-        ))
+        )
     }
 }
+// impl<const X: usize> std::ops::Mul<Vector<X>> for Matrix<X, X> {
+//     type Output = Vector<X>;
+//     fn mul(self, rhs: Vector<X>) -> Self::Output {
+//         Vector::new(
+//             std::array::from_fn(|y| {
+//                 (0..X)
+//                 .map(|x| {self[y][x] * rhs[x]})
+//                 .sum()
+//             })
+//         )
+//     }
+// }
 impl<const X: usize> std::ops::Mul<Vector<X>> for Matrix<X, X> {
     type Output = Vector<X>;
     fn mul(self, other: Vector<X>) -> Vector<X> {
@@ -76,51 +94,36 @@ impl<const X: usize> std::ops::Mul<Vector<X>> for Matrix<X, X> {
     }
 }
 
-impl Matrix4x4 {
+impl Mat4 {
     pub const IDENTITY: Self = Self::from_arrays([
         [1.0, 0.0, 0.0, 0.0],
         [0.0, 1.0, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, 0.0, 1.0],
     ]);
-    pub fn as_gl_slice(&self) -> [f32; 16] {
-        let m = self.column_major();
-        return [
-            m[0][0], m[0][1], m[0][2], m[0][3],
-            m[1][0], m[1][1], m[1][2], m[1][3],
-            m[2][0], m[2][1], m[2][2], m[2][3],
-            m[3][0], m[3][1], m[3][2], m[3][2],
-        ]
-    }
-    //turn into macro later
-    pub fn translation_mat(v: Vector3) -> Self{
+
+    pub fn translation_mat(v: Vector3) -> Self {
         Self::from_arrays([
-            [1.0, 0.0, 0.0, v.0[0]],
-            [0.0, 1.0, 0.0, v.0[1]],
-            [0.0, 0.0, 1.0, v.0[2]],
+            [1.0, 0.0, 0.0, v[0]],
+            [0.0, 1.0, 0.0, v[1]],
+            [0.0, 0.0, 1.0, v[2]],
             [0.0, 0.0, 0.0, 1.0],
         ])
     }
 }
-impl Matrix3x3 {
+
+impl Mat3 {
     pub const IDENTITY: Self = Self::from_arrays([
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
         [0.0, 0.0, 1.0],
     ]);
-    // pub fn as_gl_slice(&self) -> [f32; 9] {
-    //     let m = self.column_major();
-    //     return [
-    //         m[0][0], m[0][1], m[0][2],
-    //         m[1][0], m[1][1], m[1][2],
-    //         m[2][0], m[2][1], m[2][2],
-    //     ]
-    // }
 }
 
+//some stupid tests ill never use (maybe ill delete them later) (copied from the previous version)
 #[cfg(test)]
 mod test {
-    use crate::math::{Matrix, Vector3, Vector4, matrix::Matrix4x4};
+    use crate::math::{Matrix, Vector3, Vector4, matrix::Mat4};
 
     #[test]
     fn matrix_ops() {
@@ -185,7 +188,7 @@ mod test {
             [4.0, 5.0, 6.0],
             [7.0, 8.0, 9.0],
         ]);
-        assert_eq!(Matrix4x4::IDENTITY*Vector4::new([1.0, 2.0, 3.0, 4.0]), Vector4::new([1.0, 2.0, 3.0, 4.0]));
+        assert_eq!(Mat4::IDENTITY*Vector4::new([1.0, 2.0, 3.0, 4.0]), Vector4::new([1.0, 2.0, 3.0, 4.0]));
         assert_eq!(a*Vector3::new([1.0, 2.0, 3.0]), Vector3::new([14.0, 32.0, 50.0]))
     }
     #[test]
@@ -196,6 +199,6 @@ mod test {
             [2.0, 1.0, 0.0],
         ]);
         dbg!(&b);
-        dbg!(&b.column_major());
+        dbg!(&b.as_column_major());
     }
 }
